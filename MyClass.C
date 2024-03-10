@@ -34,7 +34,7 @@ void MyClass::Loop()
 {
   if (fChain == 0)
     return;
-  TString file_name = "ana20.root";
+  TString file_name = "zvv.root";
  
   Long64_t nentries = fChain->GetEntriesFast();
 
@@ -233,7 +233,9 @@ void MyClass::Loop()
   TH1F *h_pt_vv_vec=new TH1F("h_vv_PT_vec","vv_PT_vec",100,0,500);
   TH1F *h_pt_vv_scal=new TH1F("h_vv_PT_scal","vv_PT_scal",100,0,500);
   //MET
-  TH1F *h_met_pt=new TH1F("met_pt","met_PT",100,0,500);
+  TH1F *h_met_pt=new TH1F("met_pt","met_PT",100,0,250);
+  TH1F *h_met_qq_pt=new TH1F("met__qq_pt","met_PT",100,0,250);
+
   TH1F *h_met_phi=new TH1F("met_phi","met_phi",100,-TMath::Pi(), TMath::Pi()); 
   TH1F *h_Ht=new TH1F("Ht","Ht",100,0,700);
   // plots of 4 b quarks
@@ -744,10 +746,8 @@ void MyClass::Loop()
          double dR1 = 0;
          TLorentzVector p_fjet;
          p_fjet.SetPxPyPzE(fjet_px[i], fjet_py[i], fjet_pz[i], fjet_en[i]);
-         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5|| fjet_subjet_count[i]<2) continue;
-         count++;
-         if (count==1)index1=i;
-         if (count==2)index2=i;
+         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5||fjet_subjet_count[i]<2) continue;
+         
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
          dR1 = getDeltaR(p_fjet, vec_muons[mn_count]);
@@ -772,7 +772,13 @@ void MyClass::Loop()
          }
          }
 
-         if (!overlap) vec_fjet.push_back(p_fjet);
+         if (!overlap)
+         { 
+          count++;
+          if (count==1)index1=i;
+          if (count==2)index2=i;
+          vec_fjet.push_back(p_fjet);
+         }
       }
  //  for (int j = 0; j < vec_jet.size(); j++)
     //        {
@@ -823,7 +829,7 @@ void MyClass::Loop()
 
     h_met_pt->Fill(met_pt);
     h_met_phi->Fill(met_phi);
-
+    if(is_qq_light||is_bb)h_met_qq_pt->Fill(met_pt);
     
     // control plots mult
     h_en_mult->Fill(vec_ele.size());
@@ -889,20 +895,20 @@ void MyClass::Loop()
     //  }
         
         // Fat-jet analysis:
-      if(file_name == "ana20.root")  {
+      if(file_name == "a20.root")  {
       if (vec_fjet.size()>0)
       { 
         fj_sd_mass1->Fill(fjet_softdropM[index1]);
         fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1]);
         subcount1->Fill(fjet_subjet_count[index1]);
-	     if( vec_genbb1_truth.size()>0 && fjet_matched(vec_fjet[0],vec_genbb1_truth))
+	     if(   fjet_matched(vec_fjet[0],vec_genbb1_truth))
         {
             h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
             h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
             fj_sd_mass1_mat->Fill(fjet_softdropM[index1]);
             subcount1_mat->Fill(fjet_subjet_count[index1]);
 	      } 
-         else if(vec_genbb2_truth.size()>0 &&  fjet_matched(vec_fjet[0],vec_genbb2_truth))
+         else if(  fjet_matched(vec_fjet[0],vec_genbb2_truth))
          {
             h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
             h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
@@ -922,7 +928,7 @@ void MyClass::Loop()
          fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
          subcount2_mat->Fill(fjet_subjet_count[index2]);
          }
-         else if (vec_genbb2_truth.size()>0 &&  fjet_matched(vec_fjet[1],vec_genbb2_truth))
+         else if ( fjet_matched(vec_fjet[1],vec_genbb2_truth))
          {
             h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0].Pt()+vec_genbb2_truth[1].Pt()));
             h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
@@ -932,7 +938,7 @@ void MyClass::Loop()
       }
       }
       
-      if(file_name == "anadyzvv.root"){
+      if(file_name == "zvv.root"){
        if (vec_fjet.size()>0)
       { 
         fj_sd_mass1->Fill(fjet_softdropM[index1]);
@@ -964,14 +970,14 @@ void MyClass::Loop()
 
       //x->bb btagging 
       if (vec_fjet.size()>0){
-      float bbtag_fj1=fjet_btag10[0]/(fjet_btag10[0]+fjet_btag13[0]+fjet_btag14[0]+fjet_btag15[0]+fjet_btag16[0]+fjet_btag17[0]);  
+      float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
       h_fjet1_btagXbb->Fill(bbtag_fj1);
-      float bbccqqtagfj1=(fjet_btag10[0]+fjet_btag11[0]+fjet_btag12[0])/(fjet_btag10[0]+fjet_btag11[0]+fjet_btag12[0]+fjet_btag13[0]+fjet_btag14[0]+fjet_btag15[0]+fjet_btag16[0]+fjet_btag17[0]);
+      float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
       h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1);
       if(vec_fjet.size()>1){
-      float bbtag_fj2=fjet_btag10[1]/(fjet_btag10[1]+fjet_btag13[1]+fjet_btag14[1]+fjet_btag15[1]+fjet_btag16[1]+fjet_btag17[1]);  
+      float bbtag_fj2=fjet_btag10[index2]/(fjet_btag10[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);  
       h_fjet2_btagXbb->Fill(bbtag_fj2);
-      float bbccqqtagfj2=(fjet_btag10[1]+fjet_btag11[1]+fjet_btag12[1])/(fjet_btag10[1]+fjet_btag11[1]+fjet_btag12[1]+fjet_btag13[1]+fjet_btag14[1]+fjet_btag15[1]+fjet_btag16[1]+fjet_btag17[1]);
+      float bbccqqtagfj2=(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2])/(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);
       h_fjet2_btagXbbXccXqq->Fill(bbccqqtagfj2);
 
       h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2);
@@ -1013,12 +1019,12 @@ void MyClass::Loop()
 	    // AT LEAST 2 FAT JETS
 	  if (vec_fjet.size() < 2) continue;
     n_fjets++;
-	  h_fjet_mult_after2->Fill(vec_fjet.size());
-	  h_jet_mult_after->Fill(vec_jet.size());
+	 h_fjet_mult_after2->Fill(vec_fjet.size());
+	 h_jet_mult_after->Fill(vec_jet.size());
     h_jet_cc_mult3->Fill(vec_jet_cc.size());
     h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
-	  //h_met_pt->Fill(met_pt);
-   // h_met_phi->Fill(met_phi);
+	 // h_met_pt->Fill(met_pt);
+    //h_met_phi->Fill(met_phi);
          
     //z-?
     if(is_vv) st4_vv++;
@@ -1305,6 +1311,7 @@ void MyClass::Loop()
 
   h_Ht->Write();
   h_met_pt->Write();
+  h_met_qq_pt->Write();
   h_met_phi->Write();
   h_bb_a_vec->Write();
   h_bb_a_scal->Write();
