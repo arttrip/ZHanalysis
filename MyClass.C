@@ -34,7 +34,7 @@ void MyClass::Loop()
 {
   if (fChain == 0)
     return;
-  TString file_name = "zvv.root";
+  TString file_name = "a20.root";
  
   Long64_t nentries = fChain->GetEntriesFast();
 
@@ -159,6 +159,9 @@ void MyClass::Loop()
   TH2F *h_pt_dR_min = new TH2F("h_dR_pt", "dR_pt",100,0,500, 100, 0,8);
   TH2F *h_fj1_pt_bb_pt = new TH2F("h_fj1_pt_bb_pt", "fj1_pt_bb_pt",100,0,500, 100, 0,500);
   TH2F *h_fj2_pt_bb_pt = new TH2F("h_fj2_pt_bb_pt", "fj2_pt_bb_pt",100,0,500, 100, 0,500);
+  TH2F *fj_sd_mass1_2=new TH2F("fj_sd_mass1_2","fj_sd_mass1_2",100,0,300,100,0,300);
+  TH2F *fj_sd_mass1_2_mat=new TH2F("fj_sd_mass1_2_mat","fj_sd_mass1_2",100,0,300,100,0,300);
+
   //fjet and fjet matched soft drop mass 
 
   TH1F *fj_sd_mass1=new TH1F("fj_sd_mass1","fj_sd_mass1",100,0,300);
@@ -233,8 +236,10 @@ void MyClass::Loop()
   TH1F *h_pt_vv_vec=new TH1F("h_vv_PT_vec","vv_PT_vec",100,0,500);
   TH1F *h_pt_vv_scal=new TH1F("h_vv_PT_scal","vv_PT_scal",100,0,500);
   //MET
-  TH1F *h_met_pt=new TH1F("met_pt","met_PT",100,0,250);
-  TH1F *h_met_qq_pt=new TH1F("met__qq_pt","met_PT",100,0,250);
+  TH1F *h_met_pt=new TH1F("met_pt","met_PT",100,0,500);
+  TH1F *h_met_qq_pt=new TH1F("met_qq_l_pt","met_PT",100,0,500);
+  TH1F *h_met_bb_pt=new TH1F("met_bb_pt","met_PT",100,0,500);
+  TH1F *h_met_vv_pt=new TH1F("met_vv_pt","met_PT",100,0,500);
 
   TH1F *h_met_phi=new TH1F("met_phi","met_phi",100,-TMath::Pi(), TMath::Pi()); 
   TH1F *h_Ht=new TH1F("Ht","Ht",100,0,700);
@@ -829,7 +834,10 @@ void MyClass::Loop()
 
     h_met_pt->Fill(met_pt);
     h_met_phi->Fill(met_phi);
-    if(is_qq_light||is_bb)h_met_qq_pt->Fill(met_pt);
+    if(is_qq_light)h_met_qq_pt->Fill(met_pt);
+    if(is_bb)h_met_bb_pt->Fill(met_pt);
+    if(is_vv)h_met_vv_pt->Fill(met_pt);
+
     
     // control plots mult
     h_en_mult->Fill(vec_ele.size());
@@ -919,13 +927,15 @@ void MyClass::Loop()
       if (vec_fjet.size()>1)
       {
          fj_sd_mass2->Fill(fjet_softdropM[index2]);
+         fj_sd_mass1_2->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
          fj_pt_sd_mass2->Fill(vec_fjet[1].Pt(), fjet_softdropM[index2]);
          subcount2->Fill(fjet_subjet_count[index2]);
-         if(vec_genbb1_truth.size()>0 && fjet_matched(vec_fjet[1],vec_genbb1_truth))
+         if(fjet_matched(vec_fjet[1],vec_genbb1_truth))
          {
          h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0].Pt()+vec_genbb1_truth[1].Pt()));
          h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
          fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
+         fj_sd_mass1_2_mat->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
          subcount2_mat->Fill(fjet_subjet_count[index2]);
          }
          else if ( fjet_matched(vec_fjet[1],vec_genbb2_truth))
@@ -933,6 +943,7 @@ void MyClass::Loop()
             h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0].Pt()+vec_genbb2_truth[1].Pt()));
             h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
             fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
+            fj_sd_mass1_2_mat->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
             subcount2_mat->Fill(fjet_subjet_count[index2]);
          }
       }
@@ -1231,7 +1242,8 @@ void MyClass::Loop()
   fj_sd_mass2->Write();
   fj_pt_sd_mass1->Write();
   fj_pt_sd_mass2->Write();
-  
+  fj_sd_mass1_2_mat->Write();
+  fj_sd_mass1_2->Write();
 
 
   //write gen level
@@ -1312,6 +1324,9 @@ void MyClass::Loop()
   h_Ht->Write();
   h_met_pt->Write();
   h_met_qq_pt->Write();
+  h_met_bb_pt->Write();
+  h_met_vv_pt->Write();
+
   h_met_phi->Write();
   h_bb_a_vec->Write();
   h_bb_a_scal->Write();
