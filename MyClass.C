@@ -958,26 +958,26 @@ void MyClass::Loop()
          {
             if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb1_truth)>0)
             {
-                  h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
+                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
                   matched1=true;
                } 
                else if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb2_truth)>0)
                {
-                  h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
+                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
                   matched2=true;  
                }
             if(matched1||matched2)matched=true;
          }
          else if(file_name=="zvv.root"){
             if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
-            h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
+            h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
             matched=true;
             }
          }
          if(matched){
-            h_fj1_pt_mat->Fill(vec_fjet[1].Pt());
-            fj_sd_mass1_mat->Fill(fjet_softdropM[index2]);
-            subcount1_mat->Fill(fjet_subjet_count[index2]);
+            h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
+            fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
+            subcount2_mat->Fill(fjet_subjet_count[index2]);
         }
       }
       
@@ -1008,26 +1008,27 @@ void MyClass::Loop()
     
      
 	    // AT LEAST 2 FAT JETS
-if (vec_fjet.size() < 2) continue;
-n_fjets++;
-h_fjet_mult_after2->Fill(vec_fjet.size());
-h_jet_mult_after->Fill(vec_jet.size());
-h_jet_cc_mult3->Fill(vec_jet_cc.size());
- h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
-
+	 if (vec_fjet.size() < 2) continue;
+    n_fjets++;
+	 h_fjet_mult_after2->Fill(vec_fjet.size());
+	 h_jet_mult_after->Fill(vec_jet.size());
+    h_jet_cc_mult3->Fill(vec_jet_cc.size());
+    h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
+	 // h_met_pt->Fill(met_pt);
+    //h_met_phi->Fill(met_phi);
          
- //z-?
-if(is_vv) st4_vv++;
-if(is_qq_light) st4_qq++;
-if(is_bb) st4_bb++;
-if(is_ll) st4_ll++;
-//fill jet histos
-if (vec_jet.size() > 0)
-{
-h_jet1_pt->Fill(vec_jet[0].Pt());
-h_jet1_eta->Fill(vec_jet[0].Eta());
-h_jet1_phi->Fill(vec_jet[0].Phi());
- }
+    //z-?
+    if(is_vv) st4_vv++;
+    if(is_qq_light) st4_qq++;
+    if(is_bb) st4_bb++;
+    if(is_ll) st4_ll++;
+	  //fill jet histos
+	  if (vec_jet.size() > 0)
+	    {
+        h_jet1_pt->Fill(vec_jet[0].Pt());
+        h_jet1_eta->Fill(vec_jet[0].Eta());
+        h_jet1_phi->Fill(vec_jet[0].Phi());
+      }
 	  if (vec_jet.size() > 1)
             {
 	      h_jet2_pt->Fill(vec_jet[1].Pt());
