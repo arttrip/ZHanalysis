@@ -1008,27 +1008,26 @@ void MyClass::Loop()
     
      
 	    // AT LEAST 2 FAT JETS
-	 if (vec_fjet.size() < 2) continue;
-    n_fjets++;
-	 h_fjet_mult_after2->Fill(vec_fjet.size());
-	 h_jet_mult_after->Fill(vec_jet.size());
-    h_jet_cc_mult3->Fill(vec_jet_cc.size());
-    h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
-	 // h_met_pt->Fill(met_pt);
-    //h_met_phi->Fill(met_phi);
+if (vec_fjet.size() < 2) continue;
+n_fjets++;
+h_fjet_mult_after2->Fill(vec_fjet.size());
+h_jet_mult_after->Fill(vec_jet.size());
+h_jet_cc_mult3->Fill(vec_jet_cc.size());
+ h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
+
          
-    //z-?
-    if(is_vv) st4_vv++;
-    if(is_qq_light) st4_qq++;
-    if(is_bb) st4_bb++;
-    if(is_ll) st4_ll++;
-	  //fill jet histos
-	  if (vec_jet.size() > 0)
-	    {
-        h_jet1_pt->Fill(vec_jet[0].Pt());
-        h_jet1_eta->Fill(vec_jet[0].Eta());
-        h_jet1_phi->Fill(vec_jet[0].Phi());
-      }
+ //z-?
+if(is_vv) st4_vv++;
+if(is_qq_light) st4_qq++;
+if(is_bb) st4_bb++;
+if(is_ll) st4_ll++;
+//fill jet histos
+if (vec_jet.size() > 0)
+{
+h_jet1_pt->Fill(vec_jet[0].Pt());
+h_jet1_eta->Fill(vec_jet[0].Eta());
+h_jet1_phi->Fill(vec_jet[0].Phi());
+ }
 	  if (vec_jet.size() > 1)
             {
 	      h_jet2_pt->Fill(vec_jet[1].Pt());
