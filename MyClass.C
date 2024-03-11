@@ -35,6 +35,10 @@ void MyClass::Loop()
   if (fChain == 0)
     return;
   TString file_name = "a20.root";
+  bool isSignal(false);
+  if(file_name.Contains("a20") || file_name.Contains("a60")) isSignal=true;
+
+  bool verbose(true); 
  
   Long64_t nentries = fChain->GetEntriesFast();
 
@@ -785,32 +789,7 @@ void MyClass::Loop()
           vec_fjet.push_back(p_fjet);
          }
       }
- //  for (int j = 0; j < vec_jet.size(); j++)
-    //        {
-               
-       //        double dR[vec_fjet.size()];
-         //      double dR_min=0;
-           //    double pt_min=0;
-             //  int  min_ind=0;
-               //if(vec_fjet.size()>0){
-                 // for (int fj = 0; fj < vec_fjet.size(); fj++)
-                 // {
-                   //  dR[fj] = getDeltaR(vec_jet[j], vec_fjet[fj]);
-                   //  h_dR_j_fj->Fill(dR[fj]);
-                   //  if(dR[fj] <dR[min_ind]) min_ind = fj; 
-//
-                //  }
-                  
-                  //if(dR[min_ind]<0.8){
-                    // pt_j->Fill(vec_jet[j].Pt());
-                     //pt_fj->Fill(vec_fjet[min_ind].Pt());
-                    // if(fjet_matched(vec_fjet[min_ind],vec_genbb1_truth)||fjet_matched(vec_fjet[min_ind],vec_genbb2_truth))pt_fj_matched->Fill(vec_fjet[min_ind].Pt());
-                    // if(jet_matched(vec_jet[j],vec_genbb1_truth)||jet_matched(vec_jet[j],vec_genbb2_truth))pt_j_matched->Fill(vec_jet[j].Pt());
-                //  }
-                 // h_dR_j_fj_min->Fill(dR[min_ind]);
-                //  h_pt_dR_min->Fill(vec_fjet[min_ind].Pt(),dR[min_ind]);
-             //  }
-          //  }
+ 
     
       //jet f jet cross-cleaning
     for (int j = 0; j < vec_jet.size(); j++)  {
@@ -903,96 +882,108 @@ void MyClass::Loop()
     //  }
         
         // Fat-jet analysis:
-      if(file_name == "a20.root")  {
+       
       if (vec_fjet.size()>0)
       { 
+         //fj1 kinematics
+        h_fjet1_pt->Fill(vec_fjet[0].Pt());
+        h_fjet1_eta->Fill(vec_fjet[0].Eta());
+        h_fjet1_phi->Fill(vec_fjet[0].Phi());
+        //xbb discriminants
+        float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
+        h_fjet1_btagXbb->Fill(bbtag_fj1);
+        float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
+        h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1);
+        // fj1 sdmass 
         fj_sd_mass1->Fill(fjet_softdropM[index1]);
         fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1]);
         subcount1->Fill(fjet_subjet_count[index1]);
-	     if(   fjet_matched(vec_fjet[0],vec_genbb1_truth))
+        bool matched(false);
+        bool matched1(false);
+        bool matched2(false);
+        if(isSignal) 
         {
-            h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
-            h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
-            fj_sd_mass1_mat->Fill(fjet_softdropM[index1]);
-            subcount1_mat->Fill(fjet_subjet_count[index1]);
-	      } 
-         else if(  fjet_matched(vec_fjet[0],vec_genbb2_truth))
+         if(fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genbb1_truth)>0)
          {
-            h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
-            h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
-            fj_sd_mass1_mat->Fill(fjet_softdropM[index1]); 
-            subcount1_mat->Fill(fjet_subjet_count[index1]);     
-	      }
+               h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
+               matched1=true;
+            } 
+            else if( fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genbb2_truth)>0)
+            {
+               h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
+               matched2=true;  
+            }
+         if(matched1||matched2)matched=true;
+        }
+        else if(file_name=="zvv.root"){
+         bool matched(false);
+         if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
+          h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genqg));
+          matched=true;
+         }
+        }
+        if(matched){
+         h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
+         fj_sd_mass1_mat->Fill(fjet_softdropM[index1]);
+         subcount1_mat->Fill(fjet_subjet_count[index1]);
+        }
 	   }
       if (vec_fjet.size()>1)
-      {
+      {  
+          if(verbose) { // debugging
+	       cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
+	        }
+          //fj2 kinematics
+         h_fjet2_pt->Fill(vec_fjet[1].Pt());
+         h_fjet2_eta->Fill(vec_fjet[1].Eta());
+         h_fjet2_phi->Fill(vec_fjet[1].Phi());
+          //fj2 xbb discriminants
+         float bbtag_fj2=fjet_btag10[index2]/(fjet_btag10[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);  
+         h_fjet2_btagXbb->Fill(bbtag_fj2);
+         float bbccqqtagfj2=(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2])/(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);
+         h_fjet2_btagXbbXccXqq->Fill(bbccqqtagfj2);
+         float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
+         float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
+         h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2);
+         h_fj1_fj2_btagXbbXccXqq->Fill(bbccqqtagfj1,bbccqqtagfj2);
+          //fj2 sdmass
          fj_sd_mass2->Fill(fjet_softdropM[index2]);
          fj_sd_mass1_2->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
          fj_pt_sd_mass2->Fill(vec_fjet[1].Pt(), fjet_softdropM[index2]);
          subcount2->Fill(fjet_subjet_count[index2]);
-         if(fjet_matched(vec_fjet[1],vec_genbb1_truth))
+         bool matched(false);
+         bool matched1(false);
+         bool matched2(false);
+         if(isSignal) 
          {
-         h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0].Pt()+vec_genbb1_truth[1].Pt()));
-         h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
-         fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
-         fj_sd_mass1_2_mat->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
-         subcount2_mat->Fill(fjet_subjet_count[index2]);
+            if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb1_truth)>0)
+            {
+                  h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
+                  matched1=true;
+               } 
+               else if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb2_truth)>0)
+               {
+                  h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
+                  matched2=true;  
+               }
+            if(matched1||matched2)matched=true;
          }
-         else if ( fjet_matched(vec_fjet[1],vec_genbb2_truth))
-         {
-            h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0].Pt()+vec_genbb2_truth[1].Pt()));
-            h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
-            fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
-            fj_sd_mass1_2_mat->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
-            subcount2_mat->Fill(fjet_subjet_count[index2]);
+         else if(file_name=="zvv.root"){
+            if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
+            h_fj1_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
+            matched=true;
+            }
          }
-      }
+         if(matched){
+            h_fj1_pt_mat->Fill(vec_fjet[1].Pt());
+            fj_sd_mass1_mat->Fill(fjet_softdropM[index2]);
+            subcount1_mat->Fill(fjet_subjet_count[index2]);
+        }
       }
       
-      if(file_name == "zvv.root"){
-       if (vec_fjet.size()>0)
-      { 
-        fj_sd_mass1->Fill(fjet_softdropM[index1]);
-        fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1]);
-        subcount1->Fill(fjet_subjet_count[index1]);
-	      if( fjet_bkg_matched(vec_fjet[0],vec_genqg))
-        {
-            h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genqg));
-            h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
-            fj_sd_mass1_mat->Fill(fjet_softdropM[index1]);
-            subcount1_mat->Fill(fjet_subjet_count[index1]);
-	      }
-      }
-       if (vec_fjet.size()>1)
-      { 
-        subcount2->Fill(fjet_subjet_count[index2]);
-        fj_sd_mass2->Fill(fjet_softdropM[index2]);
-        fj_pt_sd_mass2->Fill(vec_fjet[1].Pt(), fjet_softdropM[index2]);
-	      if( fjet_bkg_matched(vec_fjet[1],vec_genqg))
-        {
-            h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
-            h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
-            fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
-            subcount2_mat->Fill(fjet_subjet_count[index2]);
-	      }
-      }
-      }
-
-
-      //x->bb btagging 
-      if (vec_fjet.size()>0){
-      float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
-      h_fjet1_btagXbb->Fill(bbtag_fj1);
-      float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
-      h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1);
-      if(vec_fjet.size()>1){
-      float bbtag_fj2=fjet_btag10[index2]/(fjet_btag10[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);  
-      h_fjet2_btagXbb->Fill(bbtag_fj2);
-      float bbccqqtagfj2=(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2])/(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);
-      h_fjet2_btagXbbXccXqq->Fill(bbccqqtagfj2);
-
-      h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2);
-      h_fj1_fj2_btagXbbXccXqq->Fill(bbccqqtagfj1,bbccqqtagfj2);}}
+      
+      
+   
        
         //---------------JET CUTS ------------------------------------------------
         // if (vec_jet.size() >= 1)
@@ -1013,22 +1004,11 @@ void MyClass::Loop()
         // }
 	  
 	  
-	  
-	if (vec_fjet.size()  > 0)
-    {
-        h_fjet1_pt->Fill(vec_fjet[0].Pt());
-        h_fjet1_eta->Fill(vec_fjet[0].Eta());
-        h_fjet1_phi->Fill(vec_fjet[0].Phi());
-    }
-  if (vec_fjet.size() > 1)
-    {
-       h_fjet2_pt->Fill(vec_fjet[1].Pt());
-       h_fjet2_eta->Fill(vec_fjet[1].Eta());
-       h_fjet2_phi->Fill(vec_fjet[1].Phi());
-    }
+	
+    
      
 	    // AT LEAST 2 FAT JETS
-	  if (vec_fjet.size() < 2) continue;
+	 if (vec_fjet.size() < 2) continue;
     n_fjets++;
 	 h_fjet_mult_after2->Fill(vec_fjet.size());
 	 h_jet_mult_after->Fill(vec_jet.size());
@@ -1071,20 +1051,6 @@ void MyClass::Loop()
             }
     
       
-            // For the histograms Higgs inv_m and pT:
-	    
-            // if (vec_fjet.size() >= 1)
-            // {
-            //    TLorentzVector p_had;
-            //    p_had=vec_jet[0]+vec_fjet[0];
-            //    if (vec_jet.size()>=2) {
-            //       p_had+=vec_jet[1]; 
-            //    }
-            //    h_higgs_inv_m->Fill(p_had.M());
-            //    h_higgs_pt->Fill(p_had.Pt());
-            //    h_higgs_eta->Fill(p_had.Eta());
-            //    h_higgs_phi->Fill(p_had.Phi());
-            // }
             
   } // END EVENT LOOP
 
@@ -1243,7 +1209,7 @@ void MyClass::Loop()
   fj_pt_sd_mass1->Write();
   fj_pt_sd_mass2->Write();
   fj_sd_mass1_2_mat->Write();
-  fj_sd_mass1_2->Write();
+  
 
 
   //write gen level
@@ -1416,24 +1382,29 @@ bool fjet_bkg_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb)
  // }
    return matched; 
 }
-float fjet_bkg_matched_qg_pt(TLorentzVector fjet,std::vector<TLorentzVector> vecb) 
+float fjet_bkg_matched_qg_pt(TLorentzVector fjet,std::vector<TLorentzVector> vecb)
 {
-  float qg_pt=0;
- // if(vecb.size()>0){
-  float dR;
+  float qg_pt=-999.;
+
   std::vector<TLorentzVector> vecmin;
   TLorentzVector vecqgpt;
-  for (int i=0; i<vecb.size(); i++) 
+bool ismatched(false);
+  for (int i=0; i<vecb.size(); i++)
    {
-      dR=getDeltaR(fjet, vecb[i]);
-      if (dR<0.8) vecmin.push_back(vecb[i]);
+ismatched=false;
+      float dR=getDeltaR(fjet, vecb[i]);
+      if (dR<0.8) {
+ismatched=true;
+     vecmin.push_back(vecb[i]);
    }
-   for (int i=0; i<vecmin.size(); i++) 
+   }
+   for (int i=0; i<vecmin.size(); i++)
    {
       vecqgpt+=vecmin[i];
    }
-   qg_pt=vecqgpt.Pt();
-   return qg_pt; 
+  
+if(ismatched) qg_pt=vecqgpt.Pt();
+   return qg_pt;
 }
 double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet)
 {
