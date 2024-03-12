@@ -807,7 +807,7 @@ void MyClass::Loop()
     // lepton cuts---------------------------------------------------
 
    // if (vec_ele.size() + vec_muons.size() < 2) continue;
-    if (vec_ele.size() + vec_muons.size() !=0) continue;
+    if ( vec_leptons.size() !=0) continue;
     
     n_event_lepton_test++;
 
@@ -915,7 +915,7 @@ void MyClass::Loop()
             }
          if(matched1||matched2)matched=true;
         }
-        else if(file_name=="zvv.root"){
+        else {
          bool matched(false);
          if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
           h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genqg));
@@ -968,7 +968,7 @@ void MyClass::Loop()
                }
             if(matched1||matched2)matched=true;
          }
-         else if(file_name=="zvv.root"){
+         else{
             if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
             h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
             matched=true;
