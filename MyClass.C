@@ -755,7 +755,8 @@ void MyClass::Loop()
          double dR1 = 0;
          TLorentzVector p_fjet;
          p_fjet.SetPxPyPzE(fjet_px[i], fjet_py[i], fjet_pz[i], fjet_en[i]);
-         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5||fjet_subjet_count[i]<2) continue;
+         if(fjet_subjet_count[i]<2) continue;
+         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5) continue;
          
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
