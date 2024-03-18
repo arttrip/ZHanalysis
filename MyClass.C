@@ -38,7 +38,7 @@ void MyClass::Loop()
   bool isSignal(false);
   if(file_name.Contains("a20") || file_name.Contains("a60")) isSignal=true;
 
-  bool verbose(true); 
+  bool verbose(false); 
  
   Long64_t nentries = fChain->GetEntriesFast();
 
@@ -125,19 +125,21 @@ void MyClass::Loop()
   TH1F *h_fjet1_pt = new TH1F("h_fjet1_pt", "fjet1_pt", 100, 0, 500);
   TH1F *h_fjet1_eta = new TH1F("h_fjet1_eta", "fjet1_eta", 100, -5, 5);
   TH1F *h_fjet1_phi = new TH1F("h_fjet1_phi", "fjet1_phi", 100, -TMath::Pi(), TMath::Pi());
-  TH1F *h_fjet1_btagXbb = new TH1F("h_fjet1_btagXbb", "fjet1_btagXbb", 50, 0, 1);
-  TH1F *h_fjet1_btagXbbXccXqq = new TH1F("h_fjet1_btagXbbXccXqq", "fjet1_btagXbbXccXqq", 50, 0, 1);
+  TH1F *h_fjet1_btagXbb = new TH1F("h_fjet1_btagXbb", "fjet1_btagXbb", 140, -0.2, 1.2);
+  TH1F *h_fjet1_btagXbbXccXqq = new TH1F("h_fjet1_btagXbbXccXqq", "fjet1_btagXbbXccXqq", 140, -0.2, 1.2);
   TH1F *h_fjet2_pt = new TH1F("h_fjet2_pt", "fjet2_pt", 100, 0, 500);
   TH1F *h_fjet2_eta = new TH1F("h_fjet2_eta", "fjet2_eta", 100, -5, 5);
   TH1F *h_fjet2_phi = new TH1F("h_fjet2_phi", "fjet2_phi", 100, -TMath::Pi(), TMath::Pi());
-  TH1F *h_fjet2_btagXbb = new TH1F("h_fjet2_btagXbb", "fjet2_btagXbb", 50, 0, 1);
-  TH1F *h_fjet2_btagXbbXccXqq = new TH1F("h_fjet2_btagXbbXccXqq", "fjet2_btagXbbXccXqq", 50, 0, 1);
+  TH1F *h_fjet2_btagXbb = new TH1F("h_fjet2_btagXbb", "fjet2_btagXbb", 140, -0.2, 1.2);
+  TH1F *h_fjet2_btagXbbXccXqq = new TH1F("h_fjet2_btagXbbXccXqq", "fjet2_btagXbbXccXqq", 300, -1,2);
 
   TH2F *h_fj1_fj2_btagXbb = new TH2F("h_fj1_vs_fj2_btagXbb", "fjet_btagXbb",50,0,1, 50, 0, 1);
   TH2F *h_fj1_fj2_btagXbbXccXqq = new TH2F("h_fj1_fj2_btagXbbXccXqq", "fjet_btagXbbXccXqq",50,0,1,50, 0, 1);
 
-
-
+  TH2F *h_fjet1_Xbb_pt = new TH2F("h_fjet1_Xbb_pt", "fjet1_btagXbb", 100,0,500,50,0, 1);
+  TH2F *h_fjet1_XbbXccXqq_pt = new TH2F("h_fjet1_XbbXccXqq_pt", "fjet1_btagXbb", 100,0,500,50,0, 1);
+  TH2F *h_fjet2_Xbb_pt = new TH2F("h_fjet2_Xbb_pt", "fjet1_btagXbb", 100,0,500,50,0, 1);
+  TH2F *h_fjet2_XbbXccXqq_pt = new TH2F("h_fjet2_XbbXccXqq_pt", "fjet1_btagXbb", 100,0,500,50,0, 1);
   // -- -- -- Delta R -- -- --
   TH1F *h_dR_jet_en_before = new TH1F("h_dR_jet_en_before", "dR_fjet_en_before", 100, 0, 8);
   TH1F *h_dR_jet_mn_before = new TH1F("h_dR_jet_mn_before", "dR_fjet_mn_before", 100, 0, 8);
@@ -244,7 +246,10 @@ void MyClass::Loop()
   TH1F *h_met_qq_pt=new TH1F("met_qq_l_pt","met_PT",100,0,500);
   TH1F *h_met_bb_pt=new TH1F("met_bb_pt","met_PT",100,0,500);
   TH1F *h_met_vv_pt=new TH1F("met_vv_pt","met_PT",100,0,500);
-
+  TH1F *h_met_trig_pt=new TH1F("met_trig_pt","met_PT",100,0,500);
+  TH1F *h_met_vv_trig_phi=new TH1F("met_vv_trig_phi","met_phi",100,-TMath::Pi(), TMath::Pi()); 
+  TH1F *h_met_vv_trig_pt=new TH1F("met_vv_trig_pt","met_PT",100,0,500);
+  TH1F *h_met_trig_phi=new TH1F("met_trig_phi","met_phi",100,-TMath::Pi(), TMath::Pi()); 
   TH1F *h_met_phi=new TH1F("met_phi","met_phi",100,-TMath::Pi(), TMath::Pi()); 
   TH1F *h_Ht=new TH1F("Ht","Ht",100,0,700);
   // plots of 4 b quarks
@@ -755,8 +760,8 @@ void MyClass::Loop()
          double dR1 = 0;
          TLorentzVector p_fjet;
          p_fjet.SetPxPyPzE(fjet_px[i], fjet_py[i], fjet_pz[i], fjet_en[i]);
-         if(fjet_subjet_count[i]<2) continue;
-         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5) continue;
+         if(fjet_subjet_count[i]<2)continue;
+         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5 ) continue;
          
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
@@ -808,7 +813,7 @@ void MyClass::Loop()
     // lepton cuts---------------------------------------------------
 
    // if (vec_ele.size() + vec_muons.size() < 2) continue;
-    if ( vec_leptons.size() !=0) continue;
+    if (vec_leptons.size() !=0) continue;
     
     n_event_lepton_test++;
 
@@ -817,7 +822,17 @@ void MyClass::Loop()
     if(is_qq_light)h_met_qq_pt->Fill(met_pt);
     if(is_bb)h_met_bb_pt->Fill(met_pt);
     if(is_vv)h_met_vv_pt->Fill(met_pt);
+    bool hasMETtrigger1=(triggerType>>11)&0x1;
+    bool hasMETtrigger2=(triggerType>>12)&0x1;
+    
 
+    if(hasMETtrigger1||hasMETtrigger2){
+    h_met_trig_pt->Fill(met_pt);
+    h_met_trig_phi->Fill(met_phi);
+    if(is_vv){
+    h_met_vv_trig_pt->Fill(met_pt);
+    h_met_vv_trig_phi->Fill(met_phi);}
+    }
     
     // control plots mult
     h_en_mult->Fill(vec_ele.size());
@@ -864,7 +879,7 @@ void MyClass::Loop()
     
    // float dileptonmass=(vec_leptons[0]+vec_leptons[1]).M();
    // if (dileptonmass>100. || dileptonmass < 80.) continue;
-    if (met_pt < 80.) continue;
+    if (met_pt < 170.) continue;
     METCUT++;
     //INVM++;
     h_fjet_mult_after1->Fill(vec_fjet.size());
@@ -895,6 +910,8 @@ void MyClass::Loop()
         h_fjet1_btagXbb->Fill(bbtag_fj1);
         float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
         h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1);
+        h_fjet1_XbbXccXqq_pt->Fill(vec_fjet[0].Pt(),bbccqqtagfj1);
+        h_fjet1_Xbb_pt->Fill(vec_fjet[0].Pt(),bbtag_fj1);
         // fj1 sdmass 
         fj_sd_mass1->Fill(fjet_softdropM[index1]);
         fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1]);
@@ -947,6 +964,8 @@ void MyClass::Loop()
          float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
          h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2);
          h_fj1_fj2_btagXbbXccXqq->Fill(bbccqqtagfj1,bbccqqtagfj2);
+         h_fjet2_XbbXccXqq_pt->Fill(vec_fjet[1].Pt(),bbccqqtagfj2);
+         h_fjet2_Xbb_pt->Fill(vec_fjet[1].Pt(),bbtag_fj2);
           //fj2 sdmass
          fj_sd_mass2->Fill(fjet_softdropM[index2]);
          fj_sd_mass1_2->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
@@ -969,7 +988,8 @@ void MyClass::Loop()
                }
             if(matched1||matched2)matched=true;
          }
-         else{
+         else
+         {
             if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
             h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
             matched=true;
@@ -1011,8 +1031,8 @@ void MyClass::Loop()
 	    // AT LEAST 2 FAT JETS
 	 if (vec_fjet.size() < 2) continue;
     n_fjets++;
-	 h_fjet_mult_after2->Fill(vec_fjet.size());
-	 h_jet_mult_after->Fill(vec_jet.size());
+	  h_fjet_mult_after2->Fill(vec_fjet.size());
+	  h_jet_mult_after->Fill(vec_jet.size());
     h_jet_cc_mult3->Fill(vec_jet_cc.size());
     h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
 	 // h_met_pt->Fill(met_pt);
@@ -1024,32 +1044,19 @@ void MyClass::Loop()
     if(is_bb) st4_bb++;
     if(is_ll) st4_ll++;
 	  //fill jet histos
-	  if (vec_jet.size() > 0)
+	  if (vec_jet_cc.size() > 0)
 	    {
-        h_jet1_pt->Fill(vec_jet[0].Pt());
-        h_jet1_eta->Fill(vec_jet[0].Eta());
-        h_jet1_phi->Fill(vec_jet[0].Phi());
+        h_jet1_pt->Fill(vec_jet_cc[0].Pt());
+        h_jet1_eta->Fill(vec_jet_cc[0].Eta());
+        h_jet1_phi->Fill(vec_jet_cc[0].Phi());
       }
-	  if (vec_jet.size() > 1)
-            {
-	      h_jet2_pt->Fill(vec_jet[1].Pt());
-	      h_jet2_eta->Fill(vec_jet[1].Eta());
-	      h_jet2_phi->Fill(vec_jet[1].Phi());
-            }
-	  if (vec_jet.size() > 2)
-            {
-	      h_jet3_pt->Fill(vec_jet[2].Pt());
-	      h_jet3_eta->Fill(vec_jet[2].Eta());
-	      h_jet3_phi->Fill(vec_jet[2].Phi());
-	      n_3j++;
-            }
-	  if (vec_jet.size() > 3)
-            {
-	      h_jet4_pt->Fill(vec_jet[3].Pt());
-	      h_jet4_eta->Fill(vec_jet[3].Eta());
-	      h_jet4_phi->Fill(vec_jet[3].Phi());
-	      n_4j++;   
-            }
+	  if (vec_jet_cc.size() > 1)
+      {
+	      h_jet2_pt->Fill(vec_jet_cc[1].Pt());
+	      h_jet2_eta->Fill(vec_jet_cc[1].Eta());
+	      h_jet2_phi->Fill(vec_jet_cc[1].Phi());
+      }
+	  
     
       
             
@@ -1159,7 +1166,10 @@ void MyClass::Loop()
   h_fjet2_btagXbb->Write();
   h_fj1_fj2_btagXbbXccXqq->Write();
   h_fj1_fj2_btagXbb->Write();
- 
+  h_fjet2_XbbXccXqq_pt->Write();
+  h_fjet2_Xbb_pt->Write();
+  h_fjet1_Xbb_pt->Write();
+  h_fjet1_XbbXccXqq_pt->Write();
 
 
   h_mn_mult_after->Write();
@@ -1293,7 +1303,10 @@ void MyClass::Loop()
   h_met_qq_pt->Write();
   h_met_bb_pt->Write();
   h_met_vv_pt->Write();
-
+  h_met_trig_pt->Write();
+  h_met_trig_phi->Write();
+  h_met_vv_trig_pt->Write();
+  h_met_vv_trig_phi->Write();
   h_met_phi->Write();
   h_bb_a_vec->Write();
   h_bb_a_scal->Write();
