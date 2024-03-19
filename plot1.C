@@ -143,10 +143,25 @@ void plot1(){
   leg4->AddEntry(hbkg3,"z->vv","l");
   leg4->SetTextSize(0.04); 
   leg4->Draw();
-
-
-  
-  
+}
+void plot2(){
  
-	
+  TFile *fDY=new TFile("histos_a20.root");
+  TH2F *h= (TH2F*)fDY->Get("h_fj1_vs_fj2_btagXbb");
+  TCanvas *c = new TCanvas ("c","c",900,800);
+  h->SetLineColor(kBlack);
+  h->GetXaxis()->SetTitle(" ParticleNetMD_Xbb_vsQCD on fjet1  ");
+  h->GetYaxis()->SetTitle("ParticleNetMD_Xbb_vsQCD on fjet2");
+  h->SetTitle("ParticleNetMD_Xbb_vsQCD : on fjet1 vs on fjet2 (ZH m20 signal) ");
+  h->Draw("COLZ");
+
+
+ 
+  TH2F *h2= (TH2F*)fDY->Get("h_fj1_fj2_btagXbbXccXqq");
+  TCanvas *c2 = new TCanvas ("c2","c2",900,800);
+  h2->SetLineColor(kBlack);
+  h2->GetXaxis()->SetTitle(" ParticleNetMD_XbbXccXqq_vsQCD on fjet1  ");
+  h2->GetYaxis()->SetTitle("ParticleNetMD_XbbXccXqq_vsQCD on fjet2");
+  h2->SetTitle("ParticleNetMD_XbbXccXqq_vsQCD : on fjet1 vs on fjet2 (ZH m20 signal) ");
+  h2->Draw("COLZ");
 }
