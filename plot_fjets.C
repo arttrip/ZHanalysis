@@ -7,28 +7,32 @@
 
 void plot_fjets(){
   // Open the input files:
-  TFile *fsig=new TFile("histos_a20.root");
-  TFile *fbkg=new TFile("histos_zvv.root");
+  TFile *fsig=new TFile("histos_an20.root");
+  TFile *fbkg1=new TFile("histos_zvv100.root");
+  TFile *fbkg2=new TFile("histos_zvv200.root");
+  
 
   //fjet mult in step 1
   
   TH1F *hjs1 =(TH1F*)fsig->Get("fjet_mult");
-  TH1F *hjb1= (TH1F*)fbkg->Get("fjet_mult");
+  TH1F *hjb1= (TH1F*)fbkg1->Get("fjet_mult");
+  TH1F *hjb11= (TH1F*)fbkg2->Get("fjet_mult");
+  hjb1->Add(hjb11);
   setTDRStyle();
   TCanvas *cas1 = new TCanvas ("cas1","cas1",900,800);
 
 
   //cas1->SetLogy();
-  hjb1->SetLineColor(kBlack);
+  hjb1->SetLineColor(kRed);
   hjb1->GetXaxis()->SetTitle("no of fjets");
   hjb1->GetYaxis()->SetTitle("Entries");
   hjb1->SetTitle("fjet mult in step 1 of cut flow ");
   hjb1->Draw("hist");
-  hjb1->SetFillColor(1);
+  hjb1->SetFillColor(kRed);
   hjb1->SetFillStyle(3004);
   hjb1->Scale(1./hjb1->Integral());// Normalize distribution to 1
 
-  hjs1->SetLineColor(kRed);
+  hjs1->SetLineColor(kBlack);
   hjs1->Draw("histsames");
   hjs1->SetLineWidth(2);
   hjs1->Scale(1./hjs1->Integral()); // Normalize distribution to 1
@@ -42,19 +46,21 @@ void plot_fjets(){
   //fjet mult in step 2
   
   TH1F *hjs2 =(TH1F*)fsig->Get("fjet_mult_after1");
-  TH1F *hjb2= (TH1F*)fbkg->Get("fjet_mult_after1");
+  TH1F *hjb2= (TH1F*)fbkg1->Get("fjet_mult_after1");
+  TH1F *hjb22= (TH1F*)fbkg2->Get("fjet_mult_after1");
+  hjb2->Add(hjb1);
   TCanvas *cas2 = new TCanvas ("cas2","cas2",900,800);
   //cas2->SetLogy();
-  hjb2->SetLineColor(kBlack);
+  hjb2->SetLineColor(kRed);
   hjb2->GetXaxis()->SetTitle("no of fjets");
   hjb2->GetYaxis()->SetTitle("Entries");
   hjb2->SetTitle("fjet mult in step 2 of cut flow ");
   hjb2->Draw("hist");
-  hjb2->SetFillColor(1);
+  hjb2->SetFillColor(kRed);
   hjb2->SetFillStyle(3004);
   hjb2->Scale(1./hjb2->Integral());// Normalize distribution to 1
 
-  hjs2->SetLineColor(kRed);
+  hjs2->SetLineColor(kBlack);
   hjs2->Draw("histsames");
   hjs2->SetLineWidth(2);
   hjs2->Scale(1./hjs2->Integral()); // Normalize distribution to 1
@@ -257,18 +263,14 @@ void plot_fjets(){
 
   //fjet1 XbbXccXqq
   TH1F *hsig = (TH1F*)fsig->Get("h_fjet1_btagXbbXccXqq");
-  TH1F *hbkg =(TH1F*)fbkg->Get("h_fjet1_btagXbbXccXqq");
-  std::cout << "signal :entries underflow: " << hsig->Integral(hsig->GetBin(1), hsig->GetBin(20)) << std::endl;	  
-  std::cout << "z #rightarrow #nu#nu :: entries underflow: " << hbkg->Integral(hbkg->GetBin(1), hbkg->GetBin(20)) << std::endl;	
-  std::cout << "signal :entries overflow: " << hsig->Integral(hsig->GetBin(121), hsig->GetBin(140)) << std::endl;	  
-  std::cout << "z #rightarrow #nu#nu :: entries overflow: " << hbkg->Integral(hbkg->GetBin(121), hbkg->GetBin(140)) << std::endl;
-  std::cout << "signal :entries in interval(0,1): " << hsig->Integral(hsig->GetBin(21), hsig->GetBin(120)) << std::endl;	
-  std::cout << "z #rightarrow #nu#nu :entries in interval(0,1): " << hbkg->Integral(hbkg->GetBin(21), hbkg->GetBin(120)) << std::endl;
-  std::cout << "z #rightarrow #nu#nu :entries in bin 130(1.1): " << hbkg->GetBinContent(130) << std::endl;
+  TH1F *hbkg1 =(TH1F*)fbkg1->Get("h_fjet1_btagXbbXccXqq");
+  TH1F *hbkg11 =(TH1F*)fbkg2->Get("h_fjet1_btagXbbXccXqq");
+  hbkg1->Add(hbkg11);
+
   // Draw the histos
   TCanvas *c1 = new TCanvas ("c1","c1",900,800);
   c1->SetLogy();
-  hsig->SetLineColor(kRed);
+  hsig->SetLineColor(kBlack);
   hsig->SetLineWidth(2);;
   hsig->GetXaxis()->SetTitle("ParticleNetMD_XbbXccXqq_vsQCD");
   hsig->GetYaxis()->SetTitle("Entries");
@@ -276,15 +278,15 @@ void plot_fjets(){
   hsig->Draw("hist");
   hsig->Scale(1./hsig->Integral());// Normalize distribution to 1
   
-  hbkg->SetLineColor(kBlack);
-  hbkg->SetFillColor(kBlack);
-  hbkg->SetFillStyle(3001);
-  hbkg->Draw("histsames");
-  hbkg->Scale(1./hbkg->Integral());
+  hbkg1->SetLineColor(kRed);
+  hbkg1->SetFillColor(kRed);
+  hbkg1->SetFillStyle(3001);
+  hbkg1->Draw("histsames");
+  hbkg1->Scale(1./hbkg1->Integral());
   
   TLegend *leg = new TLegend(0.55,0.7,.8,.9);
   leg->AddEntry(hsig,"ZH signal","l");
-  leg->AddEntry(hbkg,"Z #rightarrow #nu#nu","l");
+  leg->AddEntry(hbkg1,"Z #rightarrow #nu#nu","l");
   leg->SetTextSize(0.03); 
   leg->Draw("SAME");
 
@@ -294,14 +296,15 @@ void plot_fjets(){
   
   TH1F *hsig2 = (TH1F*)fsig->Get("h_fjet2_btagXbbXccXqq");
   //hsig->Rebin(2);
-  TH1F *hbkg2 =(TH1F*)fbkg->Get("h_fjet2_btagXbbXccXqq");
+  TH1F *hbkg2 =(TH1F*)fbkg1->Get("h_fjet2_btagXbbXccXqq");
   //hbkg->Rebin(2);
- 
+  TH1F *hbkg22 =(TH1F*)fbkg2->Get("h_fjet1_btagXbbXccXqq");
+  hbkg2->Add(hbkg22);
   // Draw the histos
   TCanvas *c2 = new TCanvas ("c2","c2",900,800);
   c2->SetLogy();
 
-  hsig2->SetLineColor(kRed);
+  hsig2->SetLineColor(kBlack);
   hsig2->SetLineWidth(2);
   hsig2->GetXaxis()->SetTitle("ParticleNetMD_XbbXccXqq_vsQCD");
   hsig2->GetYaxis()->SetTitle("Entries");
@@ -309,8 +312,8 @@ void plot_fjets(){
   hsig2->Draw("hist");
   hsig2->Scale(1./hsig2->Integral());// Normalize distribution to 1
   
-  hbkg2->SetLineColor(kBlack);
-  hbkg2->SetFillColor(kBlack);
+  hbkg2->SetLineColor(kRed);
+  hbkg2->SetFillColor(kRed);
   hbkg2->SetFillStyle(3001);
   hbkg2->Draw("histsames");
   hbkg2->Scale(1./hbkg2->Integral());
@@ -324,15 +327,16 @@ void plot_fjets(){
    
   //fjet1 Xbb
   TH1F *hsig3 = (TH1F*)fsig->Get("h_fjet1_btagXbb");
-  //hsig->Rebin(2);
-  TH1F *hbkg3 =(TH1F*)fbkg->Get("h_fjet1_btagXbb");
-  //hbkg->Rebin(2);
+  TH1F *hbkg3 =(TH1F*)fbkg1->Get("h_fjet1_btagXbb");
+  TH1F *hbkg33 =(TH1F*)fbkg2->Get("h_fjet1_btagXbbXccXqq");
+  hbkg3->Add(hbkg33);
+  
  
   // Draw the histos
   TCanvas *c3 = new TCanvas ("c3","c3",900,800);
   c3->SetLogy();
 
-  hsig3->SetLineColor(kRed);
+  hsig3->SetLineColor(kBlack);
   hsig3->SetLineWidth(2);
   hsig3->GetXaxis()->SetTitle("ParticleNetMD_Xbb_vsQCD");
   hsig3->GetYaxis()->SetTitle("Entries");
@@ -341,8 +345,8 @@ void plot_fjets(){
   hsig3->Draw("hist");
   hsig3->Scale(1./hsig3->Integral());// Normalize distribution to 1
   
-  hbkg3->SetLineColor(kBlack);
-  hbkg3->SetFillColor(kBlack);
+  hbkg3->SetLineColor(kRed);
+  hbkg3->SetFillColor(kRed);
   hbkg3->SetFillStyle(3001);
   hbkg3->Draw("histsames");
   hbkg3->Scale(1./hbkg3->Integral());
@@ -355,15 +359,15 @@ void plot_fjets(){
 
  //fjet2 xbb
   TH1F *hsig4 = (TH1F*)fsig->Get("h_fjet2_btagXbb");
-  //hsig->Rebin(2);
-  TH1F *hbkg4 =(TH1F*)fbkg->Get("h_fjet2_btagXbb");
-  //hbkg->Rebin(2);
+  TH1F *hbkg4 =(TH1F*)fbkg1->Get("h_fjet2_btagXbb");
+  TH1F *hbkg44 =(TH1F*)fbkg2->Get("h_fjet1_btagXbbXccXqq");
+  hbkg4->Add(hbkg44);
  
   // Draw the histos
   TCanvas *c4 = new TCanvas ("c4","c4",900,800);
   c4->SetLogy();
 
-  hsig4->SetLineColor(kRed);
+  hsig4->SetLineColor(kBlack);
   hsig4->SetLineWidth(2);
   hsig4->GetXaxis()->SetTitle("ParticleNetMD_Xbb_vsQCD");
   hsig4->GetYaxis()->SetTitle("Entries");
@@ -372,15 +376,15 @@ void plot_fjets(){
   hsig4->Draw("hist");
   hsig4->Scale(1./hsig4->Integral());// Normalize distribution to 1
   
-  hbkg4->SetLineColor(kBlack);
-  hbkg4->SetFillColor(kBlack);
+  hbkg4->SetLineColor(kRed);
+  hbkg4->SetFillColor(kRed);
   hbkg4->SetFillStyle(3001);
   hbkg4->Draw("histsames");
   hbkg4->Scale(1./hbkg4->Integral());
   
   TLegend *leg4 = new TLegend(0.55,0.7,.8,.9);
-  leg4->AddEntry(hsig3,"ZH(20) signal","l");
-  leg4->AddEntry(hbkg3,"z #rightarrow #nu#nu","l");
+  leg4->AddEntry(hsig4,"ZH(20) signal","l");
+  leg4->AddEntry(hbkg4,"z #rightarrow #nu#nu","l");
   leg4->SetTextSize(0.03); 
   leg4->Draw("SAME");
 
@@ -405,7 +409,9 @@ void plot_fjets(){
   h2->Draw("COLZ");
 
   // z #rightarrow #nu#nu fjet1-fjet2 xbb
-  TH2F *hb1= (TH2F*)fbkg->Get("h_fj1_vs_fj2_btagXbb");
+  TH2F *hb1= (TH2F*)fbkg1->Get("h_fj1_vs_fj2_btagXbb");
+  TH2F *hb11= (TH2F*)fbkg2->Get("h_fj1_vs_fj2_btagXbb");
+  hb1->Add(hb11);
   TCanvas *c7 = new TCanvas ("c7","c7",900,800);
   hb1->SetStats(0);
   hb1->GetXaxis()->SetTitle(" ParticleNetMD_Xbb_vsQCD on fjet1  ");
@@ -415,7 +421,9 @@ void plot_fjets(){
 
 
   //z #rightarrow #nu#nu  fjet1-fjet2 xbbccqq
-  TH2F *hb2= (TH2F*)fbkg->Get("h_fj1_fj2_btagXbbXccXqq");
+  TH2F *hb2= (TH2F*)fbkg1->Get("h_fj1_fj2_btagXbbXccXqq");
+  TH2F *hb22= (TH2F*)fbkg2->Get("h_fj1_fj2_btagXbbXccXqq");
+  hb2->Add(hb22);
   TCanvas *c8 = new TCanvas ("c8","c8",900,800);
   hb2->SetStats(0);
   hb2->GetXaxis()->SetTitle(" ParticleNetMD_XbbXccXqq_vsQCD on fjet1  ");
