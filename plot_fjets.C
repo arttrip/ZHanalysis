@@ -7,9 +7,10 @@
 
 void plot_fjets(){
   // Open the input files:
-  TFile *fsig=new TFile("histos_an20.root");
+  TFile *fsig=new TFile("histos_anal20.root");
   TFile *fbkg1=new TFile("histos_zvv100.root");
   TFile *fbkg2=new TFile("histos_zvv200.root");
+  TFile *fbkg3=new TFile("histos_tt_had.root");
   
 
   //fjet mult in step 1
@@ -18,6 +19,8 @@ void plot_fjets(){
   TH1F *hjb1= (TH1F*)fbkg1->Get("fjet_mult");
   TH1F *hjb11= (TH1F*)fbkg2->Get("fjet_mult");
   hjb1->Add(hjb11);
+  TH1F *hjt1= (TH1F*)fbkg3->Get("fjet_mult");
+  
   setTDRStyle();
   TCanvas *cas1 = new TCanvas ("cas1","cas1",900,800);
 
@@ -28,17 +31,22 @@ void plot_fjets(){
   hjb1->GetYaxis()->SetTitle("Entries");
   hjb1->SetTitle("fjet mult in step 1 of cut flow ");
   hjb1->Draw("hist");
-  hjb1->SetFillColor(kRed);
-  hjb1->SetFillStyle(3004);
-  hjb1->Scale(1./hjb1->Integral());// Normalize distribution to 1
+  hjb1->Scale(1./hjb1->Integral());
+
+  hjt1->SetLineColor(kGreen);
+  hjt1->Draw("histsames");
+  hjt1->Scale(1./hjt1->Integral());
 
   hjs1->SetLineColor(kBlack);
   hjs1->Draw("histsames");
   hjs1->SetLineWidth(2);
+  hjs1->SetFillColor(kBlack);
+  hjs1->SetFillStyle(3001);
   hjs1->Scale(1./hjs1->Integral()); // Normalize distribution to 1
   TLegend *le1 = new TLegend(0.55,0.7,.8,.9);
   le1->AddEntry(hjs1,"ZH (20) signal ","l");
   le1->AddEntry(hjb1,"Z #rightarrow #nu#nu","l");
+  le1->AddEntry(hjt1,"TTbar (had)","l");
   le1->SetTextSize(0.03); 
   le1->Draw("SAME");
 
@@ -49,6 +57,7 @@ void plot_fjets(){
   TH1F *hjb2= (TH1F*)fbkg1->Get("fjet_mult_after1");
   TH1F *hjb22= (TH1F*)fbkg2->Get("fjet_mult_after1");
   hjb2->Add(hjb1);
+  TH1F *hjt2= (TH1F*)fbkg3->Get("fjet_mult_after1");
   TCanvas *cas2 = new TCanvas ("cas2","cas2",900,800);
   //cas2->SetLogy();
   hjb2->SetLineColor(kRed);
@@ -56,17 +65,24 @@ void plot_fjets(){
   hjb2->GetYaxis()->SetTitle("Entries");
   hjb2->SetTitle("fjet mult in step 2 of cut flow ");
   hjb2->Draw("hist");
-  hjb2->SetFillColor(kRed);
-  hjb2->SetFillStyle(3004);
   hjb2->Scale(1./hjb2->Integral());// Normalize distribution to 1
 
+
+  hjt2->SetLineColor(kGreen);
+  hjt2->Draw("histsames");
+  
+  hjt2->Scale(1./hjt2->Integral());
+  
   hjs2->SetLineColor(kBlack);
+  hjs2->SetFillColor(kBlack);
+  hjs2->SetFillStyle(3001);
   hjs2->Draw("histsames");
   hjs2->SetLineWidth(2);
   hjs2->Scale(1./hjs2->Integral()); // Normalize distribution to 1
   TLegend *le2 = new TLegend(0.55,0.7,.8,.9);
   le2->AddEntry(hjs2,"ZH (20) signal ","l");
-  le2->AddEntry(hjb2," z #rightarrow #nu#nu","l");
+  le2->AddEntry(hjb2," Z #rightarrow #nu#nu","l");
+  le2->AddEntry(hjt2,"TTbar(had)","l");
   le2->SetTextSize(0.03); 
   le2->Draw("SAME");
 
@@ -81,7 +97,7 @@ void plot_fjets(){
   hsum1->GetYaxis()->SetTitle("Entries");
   hsum1->SetTitle("sub-jet mult in fjet1");
   hsum1->Draw("hist");
-  hsum1->Scale(1./hsum1->Integral());// Normalize distribution to 1
+  //hsum1->Scale(1./hsum1->Integral());// Normalize distribution to 1
 
   hsu1->SetLineColor(kRed);
   hsu1->Draw("histsames");
@@ -101,7 +117,7 @@ void plot_fjets(){
   hsum2->GetYaxis()->SetTitle("Entries");
   hsum2->SetTitle("sub-jet mult in fjet2");
   hsum2->Draw("hist");
-  hsum2->Scale(1./hsum2->Integral());// Normalize distribution to 1
+  // hsum2->Scale(1./hsum2->Integral());// Normalize distribution to 1
 
   hsu2->SetLineColor(kRed);
   hsu2->Draw("histsames");
@@ -120,18 +136,15 @@ void plot_fjets(){
   hsm1->Rebin(4);
   // Draw the histos
   TCanvas *ca1 = new TCanvas ("ca1","ca1",900,800);
-  ca1->SetLogy();
-  hsm1->SetLineColor(kBlack);
-  hsm1->GetXaxis()->SetTitle("p_{T} (GeV)");
-  hsm1->GetYaxis()->SetTitle("Entries");
-  hsm1->SetTitle("fjet1 pt");
-  hsm1->Draw("hist");
-  hsm1->Scale(1./hsm1->Integral());// Normalize distribution to 1
 
-
+  hs1->GetXaxis()->SetTitle("p_{T} (GeV)");
+  hs1->GetYaxis()->SetTitle("Entries");
+  hs1->SetTitle("fjet1 pt");
   hs1->SetLineColor(kRed);
-  hs1->Draw("histsames");
-  hs1->Scale(1./hs1->Integral()); // Normalize distribution to 1
+  hs1->Draw("hist");
+
+  hsm1->SetLineColor(kBlack);
+  hsm1->Draw("histsames");
   
   TLegend *l = new TLegend(0.55,0.7,.8,.9);
   l->AddEntry(hs1,"fjet1","l");
@@ -146,17 +159,15 @@ void plot_fjets(){
   hsm2->Rebin(4);
   // Draw the histos
   TCanvas *ca2 = new TCanvas ("ca2","ca2",900,800);
-  ca2->SetLogy();
-  hsm2->SetLineColor(kBlack);
-  hsm2->GetXaxis()->SetTitle("p_{T} (GeV)");
-  hsm2->GetYaxis()->SetTitle("Entries");
-  hsm2->SetTitle("fjet2 pt");
-  hsm2->Draw("hist");
-  //hsm2->Scale(1./hsm2->Integral());// Normalize distribution to 1
-
   hs2->SetLineColor(kRed);
-  hs2->Draw("histsames");
-  //hs2->Scale(1./hs2->Integral()); // Normalize distribution to 1
+  hs2->Draw("hist");
+  hs2->GetXaxis()->SetTitle("p_{T} (GeV)");
+  hs2->GetYaxis()->SetTitle("Entries");
+  hs2->SetTitle("fjet2 pt");
+  
+  hsm2->SetLineColor(kBlack);
+  hsm2->Draw("histsames");
+  
 
   TLegend *l2 = new TLegend(0.55,0.7,.8,.9);
   l2->AddEntry(hs2,"fjet2","l");
@@ -196,8 +207,7 @@ void plot_fjets(){
   TH2F *hsd1= (TH2F*)fsig->Get("fj_pt_sd_mass1");
   TCanvas *can1 = new TCanvas ("can1","can1",900,800);
   hsd1->GetXaxis()->SetTitle(" fjet1 p_{T} (GeV) ");
-  hsd1->GetXaxis()->SetRangeUser(0,150);
-  hsd1->GetYaxis()->SetRangeUser(0,150);
+ 
   hsd1->SetStats(0);
   hsd1->GetYaxis()->SetTitle("sd mass (GeV)");
   hsd1->SetTitle("fjet1: pt vs sd mass ");
@@ -208,8 +218,7 @@ void plot_fjets(){
   TH2F *hsd2= (TH2F*)fsig->Get("fj_pt_sd_mass2");
   TCanvas *can2 = new TCanvas ("can2","can2",900,800);
   hsd2->GetXaxis()->SetTitle(" fjet2 p_{T} (GeV) ");
-  hsd2->GetXaxis()->SetRangeUser(0,150);
-  hsd2->GetYaxis()->SetRangeUser(0,150);
+  
   hsd2->SetStats(0);
   hsd2->GetYaxis()->SetTitle("sd mass (GeV)");
   hsd2->SetTitle("fjet2: pt vs sd mass ");
@@ -220,17 +229,18 @@ void plot_fjets(){
   TH1F *mm1= (TH1F*)fsig->Get("fj_sd_mass1_matched");
 
   TCanvas *ma1 = new TCanvas ("ma1","ma1",900,800);
-  //ma1->SetLogy();
+  
   m1->SetLineColor(kRed);
   m1->GetXaxis()->SetTitle("sd mass (GeV)");
-  m1->GetXaxis()->SetRangeUser(0,150);
+  m1->GetXaxis()->SetRangeUser(0,80);
   m1->GetYaxis()->SetTitle("Entries");
   m1->SetTitle("fjet1 sd mass ");
   m1->Draw("hist");
   //m1->Scale(1./m1->Integral());// Normalize distribution to 1
   mm1->SetLineColor(kBlack);
+  mm1->GetXaxis()->SetRangeUser(0,80);
   mm1->Draw("histsames");
-  //mm1->Scale(1./mm1->Integral()); // Normalize distribution to 1
+  
   TLegend *lm1 = new TLegend(0.55,0.7,.8,.9);
   lm1->AddEntry(m1,"fjet1","l");
   lm1->AddEntry(mm1,"fjet1 matched","l");
@@ -244,13 +254,14 @@ void plot_fjets(){
   TCanvas *ma2 = new TCanvas ("ma2","ma2",900,800);
   //ma2->SetLogy();
   m2->SetLineColor(kRed);
-  m2->GetXaxis()->SetRangeUser(0,150);
+  m2->GetXaxis()->SetRangeUser(0,80);
   m2->GetXaxis()->SetTitle("sd mass (GeV)");
   m2->GetYaxis()->SetTitle("Entries");
   m2->SetTitle("fjet2 sd mass ");
   m2->Draw("hist");
   //m2->Scale(1./m2->Integral());// Normalize distribution to 1
   mm2->SetLineColor(kBlack);
+  mm2->GetXaxis()->SetRangeUser(0,80);
   mm2->Draw("histsames");
   //mm2->Scale(1./mm2->Integral()); // Normalize distribution to 1
   TLegend *lm2 = new TLegend(0.55,0.7,.8,.9);
@@ -258,6 +269,178 @@ void plot_fjets(){
   lm2->AddEntry(mm2,"fjet2 matched","l");
   lm2->SetTextSize(0.03); 
   lm2->Draw("SAME");
+  
+  //same for z->vv
+   //fjet1 pt
+  TH1F *hs3 =(TH1F*)fbkg1->Get("h_fjet1_pt");
+  TH1F *hs3b =(TH1F*)fbkg2->Get("h_fjet1_pt");
+  hs3->Add(hs3b);
+  hs3->Rebin(4);
+  TH1F *hsm3= (TH1F*)fbkg1->Get("h_fj1_pt_mat");
+  TH1F *hsm3b= (TH1F*)fbkg2->Get("h_fj1_pt_mat");
+  hsm3->Add(hsm3b);
+  hsm3->Rebin(4);
+  // Draw the histos
+  TCanvas *ca3 = new TCanvas ("ca3","ca3",900,800);
+  // ca3->SetLogy();
+ 
+
+  hs3->SetLineColor(kRed);
+  hs3->GetXaxis()->SetTitle("p_{T} (GeV)");
+  hs3->GetYaxis()->SetTitle("Entries");
+  hs3->SetTitle("fjet1 pt");
+  hs3->Draw("hist");
+
+  hsm3->SetLineColor(kBlack);
+  hsm3->Draw("histsames");
+  // hs3->Scale(1./hs3->Integral()); // Normalize distribution to 1
+  
+  TLegend *ld = new TLegend(0.55,0.7,.8,.9);
+  ld->AddEntry(hs3,"fjet1","l");
+  ld->AddEntry(hsm3,"fjet1 matched","l");
+  ld->SetTextSize(0.03); 
+  ld->Draw("SAME");
+
+  //fjet2 pt
+  TH1F *hs4 =(TH1F*)fbkg1->Get("h_fjet2_pt");
+  TH1F *hs4b =(TH1F*)fbkg2->Get("h_fjet2_pt");
+  hs4->Add(hs4b);
+  hs4->Rebin(4);
+  TH1F *hsm4= (TH1F*)fbkg1->Get("h_fj2_pt_mat");
+  TH1F *hsm4b =(TH1F*)fbkg2->Get("h_fj2_pt_mat");
+  hsm4->Add(hsm4b);
+  hsm4->Rebin(4);
+  // Draw the histos
+  TCanvas *ca4 = new TCanvas ("ca4","ca4",900,800);
+  // ca4->SetLogy();
+  
+  
+  hs4->SetLineColor(kRed);
+  hs4->GetXaxis()->SetTitle("p_{T} (GeV)");
+  hs4->GetYaxis()->SetTitle("Entries");
+  hs4->SetTitle("fjet2 pt");
+  hs4->Draw("hist");
+  
+  hsm4->SetLineColor(kBlack);
+  hsm4->Draw("histsames");
+ 
+
+  TLegend *ld2 = new TLegend(0.55,0.7,.8,.9);
+  ld2->AddEntry(hs4,"fjet2","l");
+  ld2->AddEntry(hsm4,"fjet2 matched","l");
+  ld2->SetTextSize(0.03); 
+  ld2->Draw();
+  
+  // fjet1 matched pt vs bb pair pt
+  
+  TH2F *hf3= (TH2F*)fbkg1->Get("h_fj1_pt_bb_pt");
+  TH2F *hf3b= (TH2F*)fbkg2->Get("h_fj1_pt_bb_pt");
+  hf3->Add(hf3b);
+  TCanvas *cn3 = new TCanvas ("cn3","cn3",900,800);
+  hf3->GetXaxis()->SetTitle(" fjet1 p_{T} (GeV) ");
+  hf3->GetYaxis()->SetTitle("q-g pair p_{T} (GeV)");
+  hf3->SetTitle("fjet1 matched pt vs pt(bb) ");
+  hf3->SetStats(0);
+  hf3->Draw("COLZ");
+  TLine *line3 = new TLine(0,0,500,500);
+  line3->SetLineColor(kRed);
+  line3->Draw();
+
+  // fjet2 matched pt vs bb pair pt
+  
+  TH2F *hf4= (TH2F*)fbkg1->Get("h_fj2_pt_bb_pt");
+  TH2F *hf4b= (TH2F*)fbkg2->Get("h_fj2_pt_bb_pt");
+  hf4->Add(hf4b);
+  TCanvas *cn4 = new TCanvas ("cn4","cn4",900,800);
+  hf4->GetXaxis()->SetTitle(" fjet2 p_{T} (GeV) ");
+  hf4->GetYaxis()->SetTitle("q-g pair p_{T} (GeV)");
+  hf4->SetStats(0);
+  hf4->SetTitle("fjet2 matched pt vs pt(bb) ");
+  hf4->Draw("COLZ");
+  TLine *line4 = new TLine(0,0,500,500);
+  line4->SetLineColor(kRed);
+  line4->Draw();
+
+  
+  // fjet1 : pt vs sd mass
+  
+  TH2F *hsd3= (TH2F*)fbkg1->Get("fj_pt_sd_mass1");
+  TH2F *hsd3b= (TH2F*)fbkg2->Get("fj_pt_sd_mass1");
+  hsd3->Add(hsd3b);
+  TCanvas *can3 = new TCanvas ("can3","can3",900,800);
+  hsd3->GetXaxis()->SetTitle(" fjet1 p_{T} (GeV) ");
+  
+  hsd3->SetStats(0);
+  hsd3->GetYaxis()->SetTitle("sd mass (GeV)");
+  hsd3->SetTitle("fjet1: pt vs sd mass ");
+  hsd3->Draw("COLZ");
+  
+
+  // fjet2 : pt vs sd mass
+  TH2F *hsd4= (TH2F*)fbkg1->Get("fj_pt_sd_mass2");
+  TH2F *hsd4b= (TH2F*)fbkg2->Get("fj_pt_sd_mass2");
+  hsd4->Add(hsd4b);
+  TCanvas *can4 = new TCanvas ("can4","can4",900,800);
+  hsd4->GetXaxis()->SetTitle(" fjet2 p_{T} (GeV) ");
+ 
+  hsd4->SetStats(0);
+  hsd4->GetYaxis()->SetTitle("sd mass (GeV)");
+  hsd4->SetTitle("fjet2: pt vs sd mass ");
+  hsd4->Draw("COLZ");
+
+  // fjet1 sd mass
+  TH1F *m3 =(TH1F*)fbkg1->Get("fj_sd_mass1");
+  TH1F *m3b =(TH1F*)fbkg2->Get("fj_sd_mass1");
+  m3->Add(m3b);
+  TH1F *mm3= (TH1F*)fbkg2->Get("fj_sd_mass1_matched");
+  TH1F *mm3b= (TH1F*)fbkg2->Get("fj_sd_mass1_matched");
+  mm3->Add(mm3b);
+  
+
+  TCanvas *ma3 = new TCanvas ("ma3","ma3",900,800);
+  
+  m3->SetLineColor(kRed);
+  m3->GetXaxis()->SetTitle("sd mass (GeV)");
+  m3->GetXaxis()->SetRangeUser(0,80);
+  m3->GetYaxis()->SetTitle("Entries");
+  m3->SetTitle("fjet1 sd mass ");
+  m3->Draw("hist");
+  //m1->Scale(1./m1->Integral());// Normalize distribution to 1
+  mm3->SetLineColor(kBlack);
+  mm3->GetXaxis()->SetRangeUser(0,80);
+  mm3->Draw("histsames");
+  
+  TLegend *lm3 = new TLegend(0.55,0.7,.8,.9);
+  lm3->AddEntry(m3,"fjet1","l");
+  lm3->AddEntry(mm3,"fjet1 matched","l");
+  lm3->SetTextSize(0.03); 
+  lm3->Draw("SAME");
+
+  // fjet2 sd mass
+  TH1F *m4 =(TH1F*)fbkg1->Get("fj_sd_mass2");
+  TH1F *m4b =(TH1F*)fbkg2->Get("fj_sd_mass2");
+  m4->Add(m4b);
+  TH1F *mm4= (TH1F*)fbkg1->Get("fj_sd_mass2_matched");
+  TH1F *mm4b= (TH1F*)fbkg2->Get("fj_sd_mass2_matched");
+  mm4->Add(mm4b);
+  TCanvas *ma4 = new TCanvas ("ma4","ma4",900,800);
+  //ma2->SetLogy();
+  m4->SetLineColor(kRed);
+  m4->GetXaxis()->SetRangeUser(0,80);
+  m4->GetXaxis()->SetTitle("sd mass (GeV)");
+  m4->GetYaxis()->SetTitle("Entries");
+  m4->SetTitle("fjet2 sd mass ");
+  m4->Draw("hist");
+  //m2->Scale(1./m2->Integral());// Normalize distribution to 1
+  mm4->SetLineColor(kBlack);
+  mm4->GetXaxis()->SetRangeUser(0,80);
+  mm4->Draw("histsames");
+  //mm2->Scale(1./mm2->Integral()); // Normalize distribution to 1
+  TLegend *lm4 = new TLegend(0.55,0.7,.8,.9);
+  lm4->AddEntry(m4,"fjet2","l");
+  lm4->AddEntry(mm4,"fjet2 matched","l");
+  lm4->SetTextSize(0.03); 
+  lm4->Draw("SAME");
   
  
 
