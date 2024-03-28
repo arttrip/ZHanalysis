@@ -25,23 +25,59 @@
 
 double getDeltaR(TLorentzVector vec_1, TLorentzVector vec_2);
 bool jet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb);
-bool fjet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb) ; 
 double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet);
-float fjet_bkg_matched_qg_pt(TLorentzVector fjet,std::vector<TLorentzVector> vecb) ;
-bool fjet_bkg_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) ;
+float fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) ;
 double Ht(std::vector<TLorentzVector> vecjet,std::vector<TLorentzVector> vecfjet);
 void MyClass::Loop()
 {
   if (fChain == 0)
     return;
-  TString file_name = "a20.root";
+  TString file_name = "zvv200.root";
   bool isSignal(false);
-  if(file_name.Contains("a20") || file_name.Contains("a60")) isSignal=true;
+  if(file_name.Contains("anal20")) isSignal=true;
 
   bool verbose(false); 
  
   Long64_t nentries = fChain->GetEntriesFast();
 
+  float_t Lint=43.5;
+
+  // Write cross-sections of all physics processes:
+  float_t sigma_ZH=0.839*pow(10,3); //fb
+  float_t sigma_Znunu_ht1=302.8*pow(10,3);
+  float_t k_Znunu=1.23;
+  float_t sigma_Znunu_ht2=92.59*pow(10,3);
+  float_t k_tt_had=1;
+  float_t sigma_tt_had=377.96*pow(10,3);
+ 
+
+  float_t Nexp;
+  float_t weight(1.0);
+
+  if (isSignal) {
+    Nexp=sigma_ZH*Lint;
+    weight=Nexp/nentries;
+    std::cout << "number of expected events: " << Nexp << std::endl;
+    std::cout << "weight: " <<weight << std::endl;
+  }
+  else if (file_name.Contains("100")) {
+   Nexp=sigma_Znunu_ht1*k_Znunu*Lint;
+   weight=Nexp/nentries;
+   std::cout << "number of expected events: " << Nexp << std::endl;
+   std::cout << "weight: " <<weight << std::endl;
+  }
+  else if (file_name.Contains("200")) {
+   Nexp=sigma_Znunu_ht2*k_Znunu*Lint;
+   weight=Nexp/nentries;
+   std::cout << "number of expected events: " << Nexp << std::endl;
+   std::cout << "weight: " <<weight << std::endl;
+  }
+  else if (file_name.Contains("tt_had")) {
+   Nexp=sigma_tt_had*k_tt_had*Lint;
+   weight=Nexp/nentries;
+   std::cout << "number of expected events: " << Nexp << std::endl;
+   std::cout << "weight: " <<weight << std::endl;
+  }
   //----Histograms------------------------
 
 
@@ -125,13 +161,13 @@ void MyClass::Loop()
   TH1F *h_fjet1_pt = new TH1F("h_fjet1_pt", "fjet1_pt", 100, 0, 500);
   TH1F *h_fjet1_eta = new TH1F("h_fjet1_eta", "fjet1_eta", 100, -5, 5);
   TH1F *h_fjet1_phi = new TH1F("h_fjet1_phi", "fjet1_phi", 100, -TMath::Pi(), TMath::Pi());
-  TH1F *h_fjet1_btagXbb = new TH1F("h_fjet1_btagXbb", "fjet1_btagXbb", 140, -0.2, 1.2);
-  TH1F *h_fjet1_btagXbbXccXqq = new TH1F("h_fjet1_btagXbbXccXqq", "fjet1_btagXbbXccXqq", 140, -0.2, 1.2);
+  TH1F *h_fjet1_btagXbb = new TH1F("h_fjet1_btagXbb", "fjet1_btagXbb", 300, -1, 2);
+  TH1F *h_fjet1_btagXbbXccXqq = new TH1F("h_fjet1_btagXbbXccXqq", "fjet1_btagXbbXccXqq", 140, 0, 1);
   TH1F *h_fjet2_pt = new TH1F("h_fjet2_pt", "fjet2_pt", 100, 0, 500);
   TH1F *h_fjet2_eta = new TH1F("h_fjet2_eta", "fjet2_eta", 100, -5, 5);
   TH1F *h_fjet2_phi = new TH1F("h_fjet2_phi", "fjet2_phi", 100, -TMath::Pi(), TMath::Pi());
-  TH1F *h_fjet2_btagXbb = new TH1F("h_fjet2_btagXbb", "fjet2_btagXbb", 140, -0.2, 1.2);
-  TH1F *h_fjet2_btagXbbXccXqq = new TH1F("h_fjet2_btagXbbXccXqq", "fjet2_btagXbbXccXqq", 300, -1,2);
+  TH1F *h_fjet2_btagXbb = new TH1F("h_fjet2_btagXbb", "fjet2_btagXbb", 140, 0, 1);
+  TH1F *h_fjet2_btagXbbXccXqq = new TH1F("h_fjet2_btagXbbXccXqq", "fjet2_btagXbbXccXqq", 300, 0,1);
 
   TH2F *h_fj1_fj2_btagXbb = new TH2F("h_fj1_vs_fj2_btagXbb", "fjet_btagXbb",50,0,1, 50, 0, 1);
   TH2F *h_fj1_fj2_btagXbbXccXqq = new TH2F("h_fj1_fj2_btagXbbXccXqq", "fjet_btagXbbXccXqq",50,0,1,50, 0, 1);
@@ -172,10 +208,10 @@ void MyClass::Loop()
 
   TH1F *fj_sd_mass1=new TH1F("fj_sd_mass1","fj_sd_mass1",100,0,300);
   TH1F *fj_sd_mass2=new TH1F("fj_sd_mass2","fj_sd_mass2",100,0,300);
-  TH1F *fj_sd_mass1_mat=new TH1F("fj_sd_mass1_matched","fj_sd_mass1_matched",100,0,200);
-  TH1F *fj_sd_mass2_mat=new TH1F("fj_sd_mass2_matched","fj_sd_mass2_matched",100,0,200);
-  TH2F *fj_pt_sd_mass1 = new TH2F("fj_pt_sd_mass1", "fj_pt_sd_mass1",100,0,300, 100, 0,300);
-  TH2F *fj_pt_sd_mass2 = new TH2F("fj_pt_sd_mass2", "fj_pt_sd_mass2",100,0,300, 100, 0,300);
+  TH1F *fj_sd_mass1_mat=new TH1F("fj_sd_mass1_matched","fj_sd_mass1_matched",100,0,300);
+  TH1F *fj_sd_mass2_mat=new TH1F("fj_sd_mass2_matched","fj_sd_mass2_matched",100,0,300);
+  TH2F *fj_pt_sd_mass1 = new TH2F("fj_pt_sd_mass1", "fj_pt_sd_mass1",100,0,500, 100, 0,150);
+  TH2F *fj_pt_sd_mass2 = new TH2F("fj_pt_sd_mass2", "fj_pt_sd_mass2",100,0,500, 100, 0,150);
   //subjet count
   TH1F *subcount1 = new TH1F("sub_mult1", "sub_mult1", 5, 0, 5);
   TH1F *subcount1_mat = new TH1F("sub_mult1_mat", "sub_mult1", 5, 0, 5);
@@ -378,8 +414,8 @@ void MyClass::Loop()
               double mH   = pH.M();
 
               // Make histograms of the pt, eta, phi, mass of the Higgs boson:
-              h_ptH->Fill(pH.Pt()); 
-              h_etaH->Fill(etaH); h_phiH->Fill(phiH); h_mH->Fill(mH);
+              h_ptH->Fill(pH.Pt(),weight); 
+              h_etaH->Fill(etaH,weight); h_phiH->Fill(phiH,weight); h_mH->Fill(mH,weight);
               
             }
         if(mc_id[imc]==23) 
@@ -388,8 +424,8 @@ void MyClass::Loop()
               TLorentzVector pz;
 	            pz.SetPxPyPzE(mc_px[imc],mc_py[imc],mc_pz[imc],mc_en[imc]);
               // Make histograms of the pt, eta, phi, mass of the z boson:
-              h_pt_z->Fill(pz.Pt()); 
-              h_eta_z->Fill(pz.Eta()); h_phi_z->Fill(pz.Phi()); h_m_z->Fill(pz.M());
+		    h_pt_z->Fill(pz.Pt(),weight); 
+		    h_eta_z->Fill(pz.Eta(),weight); h_phi_z->Fill(pz.Phi(),weight); h_m_z->Fill(pz.M(),weight);
               
             }
         if(mc_id[imc]==36) 
@@ -399,7 +435,7 @@ void MyClass::Loop()
 	            pa.SetPxPyPzE(mc_px[imc],mc_py[imc],mc_pz[imc],mc_en[imc]);
               // Make histograms of the pt, eta, phi, mass of the A:
               //h_pt_a->Fill(pa.Pt()); 
-              h_eta_a->Fill(pa.Eta()); h_phi_a->Fill(pa.Phi()); h_m_a->Fill(pa.M());
+              h_eta_a->Fill(pa.Eta(),weight); h_phi_a->Fill(pa.Phi(),weight); h_m_a->Fill(pa.M(),weight);
               vec_gena.push_back(pa);
             }
 
@@ -531,7 +567,7 @@ void MyClass::Loop()
     
     
       // find dr between aas
-    if (vec_gena.size()>1) h_dr_aa->Fill(getDeltaR(vec_gena[0],vec_gena[1]));
+    if (vec_gena.size()>1) h_dr_aa->Fill(getDeltaR(vec_gena[0],vec_gena[1]),weight);
 
     //sort qluon-quark vector
     if (vec_genqg.size()>0)
@@ -591,22 +627,22 @@ void MyClass::Loop()
     
     //plot dr and  vector sum pt of bbs of same mom and z->vv event
     if (vec_genbb1_truth.size()>1 && is_vv ){
-     h_dr_bb1->Fill(getDeltaR(vec_genbb1_truth[0],vec_genbb1_truth[1]));
-     h_pt_bb1_vec->Fill((vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
+     h_dr_bb1->Fill(getDeltaR(vec_genbb1_truth[0],vec_genbb1_truth[1]),weight);
+     h_pt_bb1_vec->Fill((vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
      //h_pt_bb1_scal->Fill(vec_genbb1_truth[0].Pt()+vec_genbb1_truth[1].Pt());
      h_pt_a1->Fill(vec_gena[0].Pt()); 
-     h_bb_a_vec->Fill(vec_gena[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
+     h_bb_a_vec->Fill(vec_gena[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
     // h_bb_a_scal->Fill(vec_gena[0].Pt(),vec_genbb1_truth[0].Pt()+vec_genbb1_truth[1].Pt());
     }
     if (vec_genbb2_truth.size()>1 && is_vv){
-      h_dr_bb2->Fill(getDeltaR(vec_genbb2_truth[0],vec_genbb2_truth[1]));
-      h_pt_bb2->Fill((vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
-      h_pt_a2->Fill(vec_gena[1].Pt()); 
+      h_dr_bb2->Fill(getDeltaR(vec_genbb2_truth[0],vec_genbb2_truth[1]),weight);
+      h_pt_bb2->Fill((vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt(),weight);
+      h_pt_a2->Fill(vec_gena[1].Pt(),weight); 
     }
     //plot scalr sum pt of vvs
     if(vec_zvv.size()>1){
-      h_pt_vv_scal->Fill(vec_zvv[0].Pt()+vec_zvv[1].Pt());
-      h_pt_vv_vec->Fill((vec_zvv[0]+vec_zvv[1]).Pt());
+      h_pt_vv_scal->Fill(vec_zvv[0].Pt()+vec_zvv[1].Pt(),weight);
+      h_pt_vv_vec->Fill((vec_zvv[0]+vec_zvv[1]).Pt(),weight);
 
     } 
      // plot eta and pt of 4 b quarks 
@@ -634,37 +670,37 @@ void MyClass::Loop()
     //plot eta and pt of 4 gluons-quarks
     if (vec_genqg.size()>0)
     {
-      h_pt_qg1->Fill(vec_genqg[0].Pt());
-      h_eta_qg1->Fill(vec_genqg[0].Eta());
+      h_pt_qg1->Fill(vec_genqg[0].Pt(),weight);
+      h_eta_qg1->Fill(vec_genqg[0].Eta(),weight);
     }
     if (vec_genqg.size()>1) 
     {
-      h_pt_qg2->Fill(vec_genqg[1].Pt());
-      h_eta_qg2->Fill(vec_genqg[1].Eta());
+      h_pt_qg2->Fill(vec_genqg[1].Pt(),weight);
+      h_eta_qg2->Fill(vec_genqg[1].Eta(),weight);
     }  
     if (vec_genqg.size()>2)
     {
-      h_pt_qg3->Fill(vec_genqg[2].Pt());
-      h_eta_qg3->Fill(vec_genqg[2].Eta());
+      h_pt_qg3->Fill(vec_genqg[2].Pt(),weight);
+      h_eta_qg3->Fill(vec_genqg[2].Eta(),weight);
     }
     if (vec_genqg.size()>3)
     {
-      h_pt_qg4->Fill(vec_genqg[3].Pt());
-      h_eta_qg4->Fill(vec_genqg[3].Eta());
+      h_pt_qg4->Fill(vec_genqg[3].Pt(),weight);
+      h_eta_qg4->Fill(vec_genqg[3].Eta(),weight);
     }
     
     // Make Histograms: lepton mulciplicity, q/g multiplicity , b-quark multiplicity --> Check effect of the Acceptance cuts (pt/eta)
-    h_engen_mult_bef->Fill(vec_genele_bef.size());
-    h_mngen_mult_bef->Fill(vec_genmu_bef.size());
-    h_leptgen_mult_bef->Fill(vec_genlep_bef.size());
-    h_qg_mult_bef->Fill(vec_genqg_bef.size());
-    h_bq_mult_bef->Fill(vec_genb_bef.size());
+    h_engen_mult_bef->Fill(vec_genele_bef.size(),weight);
+    h_mngen_mult_bef->Fill(vec_genmu_bef.size(),weight);
+    h_leptgen_mult_bef->Fill(vec_genlep_bef.size(),weight);
+    h_qg_mult_bef->Fill(vec_genqg_bef.size(),weight);
+    h_bq_mult_bef->Fill(vec_genb_bef.size(),weight);
     //after acceptance cuts
-    h_engen_mult->Fill(vec_genele.size());
-    h_mngen_mult->Fill(vec_genmu.size());
-    h_leptgen_mult->Fill(vec_genlep.size());
-    h_qg_mult->Fill(vec_genqg.size());
-    h_bq_mult->Fill(vec_genb.size());
+    h_engen_mult->Fill(vec_genele.size(),weight);
+    h_mngen_mult->Fill(vec_genmu.size(),weight);
+    h_leptgen_mult->Fill(vec_genlep.size(),weight);
+    h_qg_mult->Fill(vec_genqg.size(),weight);
+    h_bq_mult->Fill(vec_genb.size(),weight);
     
     
     // END GENERATOR LEVEL ANALYSIS
@@ -720,24 +756,24 @@ void MyClass::Loop()
       for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
       {
         dR1 = getDeltaR(p_jet, vec_muons[mn_count]);
-        h_dR_jet_mn_before->Fill(dR1);
+        h_dR_jet_mn_before->Fill(dR1,weight);
         if (dR1 < 0.4){
           overlap = true;
          }
          else {
-            h_dR_jet_mn_after->Fill(dR1);
+            h_dR_jet_mn_after->Fill(dR1,weight);
          }
       }
 
       for (int en_count = 0; en_count < vec_ele.size(); en_count++)
       {
         dR1 = getDeltaR(p_jet, vec_ele[en_count]);
-        h_dR_jet_en_before->Fill(dR1);
+        h_dR_jet_en_before->Fill(dR1,weight);
         if (dR1 < 0.4){
          overlap = true;
         }
         else {
-         h_dR_jet_en_after->Fill(dR1);
+         h_dR_jet_en_after->Fill(dR1,weight);
         }
       }
 
@@ -766,24 +802,24 @@ void MyClass::Loop()
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
          dR1 = getDeltaR(p_fjet, vec_muons[mn_count]);
-         h_dR_fjet_mn_before->Fill(dR1);
+         h_dR_fjet_mn_before->Fill(dR1,weight);
          if (dR1 < 0.8){
             overlap = true;
             }
             else {
-               h_dR_fjet_mn_after->Fill(dR1);
+               h_dR_fjet_mn_after->Fill(dR1,weight);
             }
          }
 
          for (int en_count = 0; en_count < vec_ele.size(); en_count++)
          {
          dR1 = getDeltaR(p_fjet, vec_ele[en_count]);
-         h_dR_fjet_en_before->Fill(dR1);
+         h_dR_fjet_en_before->Fill(dR1,weight);
          if (dR1 < 0.8){
             overlap = true;
          }
          else {
-            h_dR_fjet_en_after->Fill(dR1);
+            h_dR_fjet_en_after->Fill(dR1,weight);
          }
          }
 
@@ -817,61 +853,61 @@ void MyClass::Loop()
     
     n_event_lepton_test++;
 
-    h_met_pt->Fill(met_pt);
-    h_met_phi->Fill(met_phi);
-    if(is_qq_light)h_met_qq_pt->Fill(met_pt);
-    if(is_bb)h_met_bb_pt->Fill(met_pt);
-    if(is_vv)h_met_vv_pt->Fill(met_pt);
+    h_met_pt->Fill(met_pt,weight);
+    h_met_phi->Fill(met_phi,weight);
+    if(is_qq_light)h_met_qq_pt->Fill(met_pt,weight);
+    if(is_bb)h_met_bb_pt->Fill(met_pt,weight);
+    if(is_vv)h_met_vv_pt->Fill(met_pt,weight);
     bool hasMETtrigger1=(triggerType>>11)&0x1;
     bool hasMETtrigger2=(triggerType>>12)&0x1;
     
 
     if(hasMETtrigger1||hasMETtrigger2){
-    h_met_trig_pt->Fill(met_pt);
-    h_met_trig_phi->Fill(met_phi);
+    h_met_trig_pt->Fill(met_pt,weight);
+    h_met_trig_phi->Fill(met_phi,weight);
     if(is_vv){
-    h_met_vv_trig_pt->Fill(met_pt);
-    h_met_vv_trig_phi->Fill(met_phi);}
+    h_met_vv_trig_pt->Fill(met_pt,weight);
+    h_met_vv_trig_phi->Fill(met_phi,weight);}
     }
     
     // control plots mult
-    h_en_mult->Fill(vec_ele.size());
-    h_mn_mult->Fill(vec_muons.size());
+    h_en_mult->Fill(vec_ele.size(),weight);
+    h_mn_mult->Fill(vec_muons.size(),weight);
     //h_lepton_mult->Fill(vec_ele.size() + vec_muons.size());
-    h_jet_mult->Fill(vec_jet.size());
-    h_bjet_mult->Fill(vec_bjets.size());
-    h_fjet_mult->Fill(vec_fjet.size());
-    h_jet_cc_mult1->Fill(vec_jet_cc.size());
+    h_jet_mult->Fill(vec_jet.size(),weight);
+    h_bjet_mult->Fill(vec_bjets.size(),weight);
+    h_fjet_mult->Fill(vec_fjet.size(),weight);
+    h_jet_cc_mult1->Fill(vec_jet_cc.size(),weight);
     // ele kinematics pt, eta, phi  e[1]
     if (vec_ele.size() > 0)
       {
-        h_en1_pt->Fill(vec_ele[0].Pt());
-        h_en1_eta->Fill(vec_ele[0].Eta());
-        h_en1_phi->Fill(vec_ele[0].Phi());
+        h_en1_pt->Fill(vec_ele[0].Pt(),weight);
+        h_en1_eta->Fill(vec_ele[0].Eta(),weight);
+        h_en1_phi->Fill(vec_ele[0].Phi(),weight);
       }
     if (vec_ele.size() > 1)
       { 
         n_2el++;
-        h_en2_pt->Fill(vec_ele[1].Pt());
-        h_en2_eta->Fill(vec_ele[1].Eta());
-        h_en2_phi->Fill(vec_ele[1].Phi());
+        h_en2_pt->Fill(vec_ele[1].Pt(),weight);
+        h_en2_eta->Fill(vec_ele[1].Eta(),weight);
+        h_en2_phi->Fill(vec_ele[1].Phi(),weight);
         TLorentzVector diele=vec_ele[1]+vec_ele[0];
       }
     
     if (vec_muons.size() > 0)
       {
-        h_mn1_pt->Fill(vec_muons[0].Pt());
-        h_mn1_eta->Fill(vec_muons[0].Eta());
-        h_mn1_phi->Fill(vec_muons[0].Phi());
+        h_mn1_pt->Fill(vec_muons[0].Pt(),weight);
+        h_mn1_eta->Fill(vec_muons[0].Eta(),weight);
+        h_mn1_phi->Fill(vec_muons[0].Phi(),weight);
       }
     if (vec_muons.size() > 1)
       {  
         n_2mn++;
-        h_mn2_pt->Fill(vec_muons[1].Pt());
-        h_mn2_eta->Fill(vec_muons[1].Eta());
-        h_mn2_phi->Fill(vec_muons[1].Phi());
+        h_mn2_pt->Fill(vec_muons[1].Pt(),weight);
+        h_mn2_eta->Fill(vec_muons[1].Eta(),weight);
+        h_mn2_phi->Fill(vec_muons[1].Phi(),weight);
         TLorentzVector dimuon=vec_muons[1]+vec_muons[0];
-        h_2mn_inv_m1->Fill(dimuon.M());
+        h_2mn_inv_m1->Fill(dimuon.M(),weight);
       }
         
     
@@ -882,8 +918,8 @@ void MyClass::Loop()
     if (met_pt < 170.) continue;
     METCUT++;
     //INVM++;
-    h_fjet_mult_after1->Fill(vec_fjet.size());
-    h_jet_cc_mult2->Fill(vec_jet_cc.size());
+    h_fjet_mult_after1->Fill(vec_fjet.size(),weight);
+    h_jet_cc_mult2->Fill(vec_jet_cc.size(),weight);
    // if (diele.M()>80 && diele.M()<100)
      // {
      //   n_event_m2el_good++;
@@ -902,105 +938,118 @@ void MyClass::Loop()
       if (vec_fjet.size()>0)
       { 
          //fj1 kinematics
-        h_fjet1_pt->Fill(vec_fjet[0].Pt());
-        h_fjet1_eta->Fill(vec_fjet[0].Eta());
-        h_fjet1_phi->Fill(vec_fjet[0].Phi());
-        //xbb discriminants
-        float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
-        h_fjet1_btagXbb->Fill(bbtag_fj1);
-        float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
-        h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1);
-        h_fjet1_XbbXccXqq_pt->Fill(vec_fjet[0].Pt(),bbccqqtagfj1);
-        h_fjet1_Xbb_pt->Fill(vec_fjet[0].Pt(),bbtag_fj1);
+        h_fjet1_pt->Fill(vec_fjet[0].Pt(),weight);
+        h_fjet1_eta->Fill(vec_fjet[0].Eta(),weight);
+        h_fjet1_phi->Fill(vec_fjet[0].Phi(),weight);
+       
         // fj1 sdmass 
-        fj_sd_mass1->Fill(fjet_softdropM[index1]);
-        fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1]);
-        subcount1->Fill(fjet_subjet_count[index1]);
+        fj_sd_mass1->Fill(fjet_softdropM[index1],weight);
+        fj_pt_sd_mass1->Fill(vec_fjet[0].Pt(), fjet_softdropM[index1],weight);
+        subcount1->Fill(fjet_subjet_count[index1],weight);
+	
         bool matched(false);
-        bool matched1(false);
-        bool matched2(false);
+        bool matched1(false);bool matched2(false);
+	
         if(isSignal) 
-        {
-         if(fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genbb1_truth)>0)
-         {
-               h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
-               matched1=true;
-            } 
-            else if( fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genbb2_truth)>0)
-            {
-               h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
-               matched2=true;  
-            }
-         if(matched1||matched2)matched=true;
-        }
-        else {
-         bool matched(false);
-         if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
-          h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[0],vec_genqg));
-          matched=true;
-         }
+	  {
+	    if(fjet_matched(vec_fjet[0],vec_genbb1_truth)>0)
+	      {
+		h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
+		matched1=true;
+	      } 
+            else if( fjet_matched(vec_fjet[0],vec_genbb2_truth)>0)
+	      {
+		h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt(),weight);
+		matched2=true;  
+	      }
+	    if(matched1||matched2)matched=true;
+	  }
+        else { // backgrounds:
+	  
+	  if( fjet_matched(vec_fjet[1],vec_genqg)>0){
+	    h_fj1_pt_bb_pt->Fill(vec_fjet[0].Pt(),fjet_matched(vec_fjet[0],vec_genqg),weight);
+	    matched=true;
+	  }
         }
         if(matched){
-         h_fj1_pt_mat->Fill(vec_fjet[0].Pt());
-         fj_sd_mass1_mat->Fill(fjet_softdropM[index1]);
-         subcount1_mat->Fill(fjet_subjet_count[index1]);
+	  h_fj1_pt_mat->Fill(vec_fjet[0].Pt(),weight);
+	  fj_sd_mass1_mat->Fill(fjet_softdropM[index1],weight);
+	  subcount1_mat->Fill(fjet_subjet_count[index1],weight);
         }
-	   }
-      if (vec_fjet.size()>1)
-      {  
-          if(verbose) { // debugging
-	       cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
-	        }
-          //fj2 kinematics
-         h_fjet2_pt->Fill(vec_fjet[1].Pt());
-         h_fjet2_eta->Fill(vec_fjet[1].Eta());
-         h_fjet2_phi->Fill(vec_fjet[1].Phi());
-          //fj2 xbb discriminants
-         float bbtag_fj2=fjet_btag10[index2]/(fjet_btag10[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);  
-         h_fjet2_btagXbb->Fill(bbtag_fj2);
-         float bbccqqtagfj2=(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2])/(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);
-         h_fjet2_btagXbbXccXqq->Fill(bbccqqtagfj2);
-         float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
-         float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
-         h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2);
-         h_fj1_fj2_btagXbbXccXqq->Fill(bbccqqtagfj1,bbccqqtagfj2);
-         h_fjet2_XbbXccXqq_pt->Fill(vec_fjet[1].Pt(),bbccqqtagfj2);
-         h_fjet2_Xbb_pt->Fill(vec_fjet[1].Pt(),bbtag_fj2);
-          //fj2 sdmass
-         fj_sd_mass2->Fill(fjet_softdropM[index2]);
-         fj_sd_mass1_2->Fill(fjet_softdropM[index1],fjet_softdropM[index2]);
-         fj_pt_sd_mass2->Fill(vec_fjet[1].Pt(), fjet_softdropM[index2]);
-         subcount2->Fill(fjet_subjet_count[index2]);
-         bool matched(false);
-         bool matched1(false);
-         bool matched2(false);
-         if(isSignal) 
-         {
-            if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb1_truth)>0)
-            {
-                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt());
-                  matched1=true;
-               } 
-               else if(  fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genbb2_truth)>0)
-               {
-                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt());
-                  matched2=true;  
-               }
-            if(matched1||matched2)matched=true;
-         }
-         else
-         {
-            if( fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg)>0){
-            h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_bkg_matched_qg_pt(vec_fjet[1],vec_genqg));
-            matched=true;
-            }
-         }
-         if(matched){
-            h_fj2_pt_mat->Fill(vec_fjet[1].Pt());
-            fj_sd_mass2_mat->Fill(fjet_softdropM[index2]);
-            subcount2_mat->Fill(fjet_subjet_count[index2]);
-        }
+	
+	
+	//xbb discriminants
+        float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
+        h_fjet1_btagXbb->Fill(bbtag_fj1,weight);
+        float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
+        h_fjet1_btagXbbXccXqq->Fill(bbccqqtagfj1,weight);
+        h_fjet1_XbbXccXqq_pt->Fill(vec_fjet[0].Pt(),bbccqqtagfj1);
+        h_fjet1_Xbb_pt->Fill(vec_fjet[0].Pt(),bbtag_fj1,weight);
+	
+	
       }
+      
+      // fjet2:
+      if (vec_fjet.size()>1)
+	{  
+          if(verbose) { // debugging
+	    cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
+	  }
+          //fj2 kinematics
+	  h_fjet2_pt->Fill(vec_fjet[1].Pt(),weight);
+	  h_fjet2_eta->Fill(vec_fjet[1].Eta(),weight);
+	  h_fjet2_phi->Fill(vec_fjet[1].Phi(),weight);
+	  
+          //fj2 sdmass
+	  fj_sd_mass2->Fill(fjet_softdropM[index2],weight);
+	  fj_sd_mass1_2->Fill(fjet_softdropM[index1],fjet_softdropM[index2],weight);
+	  fj_pt_sd_mass2->Fill(vec_fjet[1].Pt(), fjet_softdropM[index2],weight);
+	  subcount2->Fill(fjet_subjet_count[index2],weight);
+	  
+	  bool matched(false);
+	  bool matched1(false); bool matched2(false);
+	  
+	  if(isSignal) 
+	    {
+	      if(  fjet_matched(vec_fjet[1],vec_genbb1_truth)>0)
+		{
+                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
+                  matched1=true;
+		} 
+	      else if(  fjet_matched(vec_fjet[1],vec_genbb2_truth)>0)
+		{
+                  h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt(),weight);
+                  matched2=true;  
+		}
+	      if(matched1||matched2)matched=true;
+	    }
+	  else
+	    {
+	      if( fjet_matched(vec_fjet[1],vec_genqg)>0){
+		h_fj2_pt_bb_pt->Fill(vec_fjet[1].Pt(),fjet_matched(vec_fjet[1],vec_genqg),weight);
+		matched=true;
+	      }
+	    }
+	  if(matched){
+	    h_fj2_pt_mat->Fill(vec_fjet[1].Pt(),weight);
+	    fj_sd_mass2_mat->Fill(fjet_softdropM[index2],weight);
+	    subcount2_mat->Fill(fjet_subjet_count[index2],weight);
+	  }
+	  
+	  
+	  //fj2 xbb discriminants
+	  float bbtag_fj2=fjet_btag10[index2]/(fjet_btag10[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);  
+	  h_fjet2_btagXbb->Fill(bbtag_fj2,weight);
+	  float bbccqqtagfj2=(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2])/(fjet_btag10[index2]+fjet_btag11[index2]+fjet_btag12[index2]+fjet_btag13[index2]+fjet_btag14[index2]+fjet_btag15[index2]+fjet_btag16[index2]+fjet_btag17[index2]);
+	  h_fjet2_btagXbbXccXqq->Fill(bbccqqtagfj2,weight);
+	  float bbtag_fj1=fjet_btag10[index1]/(fjet_btag10[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);  
+	  float bbccqqtagfj1=(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1])/(fjet_btag10[index1]+fjet_btag11[index1]+fjet_btag12[index1]+fjet_btag13[index1]+fjet_btag14[index1]+fjet_btag15[index1]+fjet_btag16[index1]+fjet_btag17[index1]);
+	  h_fj1_fj2_btagXbb->Fill(bbtag_fj1,bbtag_fj2,weight);
+	  h_fj1_fj2_btagXbbXccXqq->Fill(bbccqqtagfj1,bbccqqtagfj2,weight);
+	  h_fjet2_XbbXccXqq_pt->Fill(vec_fjet[1].Pt(),bbccqqtagfj2,weight);
+	  h_fjet2_Xbb_pt->Fill(vec_fjet[1].Pt(),bbtag_fj2,weight);
+	  
+	}
       
       
       
@@ -1024,44 +1073,39 @@ void MyClass::Loop()
         //   }
         // }
 	  
-	  
-	
-    
      
 	    // AT LEAST 2 FAT JETS
-	 if (vec_fjet.size() < 2) continue;
-    n_fjets++;
-	  h_fjet_mult_after2->Fill(vec_fjet.size());
-	  h_jet_mult_after->Fill(vec_jet.size());
-    h_jet_cc_mult3->Fill(vec_jet_cc.size());
-    h_Ht->Fill(Ht(vec_jet_cc,vec_fjet));
-	 // h_met_pt->Fill(met_pt);
-    //h_met_phi->Fill(met_phi);
-         
-    //z-?
-    if(is_vv) st4_vv++;
-    if(is_qq_light) st4_qq++;
-    if(is_bb) st4_bb++;
-    if(is_ll) st4_ll++;
-	  //fill jet histos
-	  if (vec_jet_cc.size() > 0)
-	    {
-        h_jet1_pt->Fill(vec_jet_cc[0].Pt());
-        h_jet1_eta->Fill(vec_jet_cc[0].Eta());
-        h_jet1_phi->Fill(vec_jet_cc[0].Phi());
-      }
-	  if (vec_jet_cc.size() > 1)
-      {
-	      h_jet2_pt->Fill(vec_jet_cc[1].Pt());
-	      h_jet2_eta->Fill(vec_jet_cc[1].Eta());
-	      h_jet2_phi->Fill(vec_jet_cc[1].Phi());
-      }
-	  
-    
+      if (vec_fjet.size() < 2) continue;
+      n_fjets++;
+      h_fjet_mult_after2->Fill(vec_fjet.size(),weight);
+      h_jet_mult_after->Fill(vec_jet.size(),weight);
+      h_jet_cc_mult3->Fill(vec_jet_cc.size(),weight);
+      h_Ht->Fill(Ht(vec_jet_cc,vec_fjet),weight);
+      // h_met_pt->Fill(met_pt);
+      //h_met_phi->Fill(met_phi);
       
-            
+      //z-?
+      if(is_vv) st4_vv++;
+      if(is_qq_light) st4_qq++;
+      if(is_bb) st4_bb++;
+      if(is_ll) st4_ll++;
+      //fill jet histos
+      if (vec_jet_cc.size() > 0)
+	{
+	  h_jet1_pt->Fill(vec_jet_cc[0].Pt(),weight);
+	  h_jet1_eta->Fill(vec_jet_cc[0].Eta(),weight);
+	  h_jet1_phi->Fill(vec_jet_cc[0].Phi(),weight);
+	}
+      if (vec_jet_cc.size() > 1)
+	{
+	  h_jet2_pt->Fill(vec_jet_cc[1].Pt(),weight);
+	  h_jet2_eta->Fill(vec_jet_cc[1].Eta(),weight);
+	  h_jet2_phi->Fill(vec_jet_cc[1].Phi(),weight);
+	}
+      
+       
   } // END EVENT LOOP
-
+  
   std::cout << "reconstruction level: "  << std::endl;
   std::cout << "number of events: " << nentries << std::endl;
   std::cout << "number of 0 lepton events: " << n_event_lepton_test << std::endl;
@@ -1089,7 +1133,7 @@ void MyClass::Loop()
    out_file<< "Cuts," << "No. of events," << "Efficiency" <<std::endl;
    out_file << "(raw)," << nentries << ","<< nentries/nentries * 100 <<std::endl;
    out_file << "0 lept cut," << n_event_lepton_test << ","<< (float)n_event_lepton_test/(float)nentries*100<<std::endl;
-   out_file << "MET PT cut," <<METCUT<< ","<< (float)INVM/(float)nentries*100<<std::endl;
+   out_file << "MET PT cut," <<METCUT<< ","<< (float)METCUT/(float)nentries*100<<std::endl;
    out_file << "2fjet cut," << n_fjets<< ","<< (float)n_fjets/(float)nentries*100<<std::endl;
    out_file.close();
 
@@ -1342,84 +1386,35 @@ bool jet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb)
    if (dR_min<0.4) matched=true;
    return matched; 
 }
-//bool fjet_matched(TLorentzVector fjet) 
-//{
-  //bool matched1=false;
-  //bool matched2=false;
-  //bool matched=false;
-  //if(vec_genbb1_truth.size()>1)
-  //{
-   //float dR[vec_genbb1_truth.size().size()];
-   //for (int i=0; i<vec_genbb1_truth.size(); i++) 
-   //{
-     // dR[i]=getDeltaR(fjet, vec_genbb1_truth[i]);
-   //}
-   //if (dR[0]<0.8 && dR[1]<0.8) matched1=true;
-   //}
-   //if(vec_genbb2_truth.size()>1)
-  //{
-   //float dR[vec_genbb2_truth.size()];
-   //for (int i=0; i<vec_genbb2_truth.size(); i++)
-   // {
-     // dR[i]=getDeltaR(fjet, vec_genbb2_truth[i]);
-   //}
-   //if (dR[0]<0.8 && dR[1]<0.8) matched2=true;
-   //}
-   //if(matched1||matched2)matched=true;
 
-   //return matched; 
-//}
-
-bool fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) 
-{
-  bool matched=false;
-  float dR[vecb.size()];
-   for (int i=0; i<vecb.size(); i++) {
-      dR[i]=getDeltaR(fjet, vecb[i]);
-      
-   }
-   if (dR[0]<0.8 && dR[1]<0.8) matched=true;
-   return matched; 
-}
-bool fjet_bkg_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) 
-{
-  bool matched=false;
-  int n=-1;
- // if(vecb.size()>0){
-  float dR;
-   for (int i=0; i<vecb.size(); i++) 
-   {
-      dR=getDeltaR(fjet, vecb[i]);
-      if (dR<0.8) n++;
-   }
-   if (n>0) matched=true;
- // }
-   return matched; 
-}
-float fjet_bkg_matched_qg_pt(TLorentzVector fjet,std::vector<TLorentzVector> vecb)
+float fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb)
 {
   float qg_pt=-999.;
 
   std::vector<TLorentzVector> vecmin;
   TLorentzVector vecqgpt;
-bool ismatched(false);
+  
+  bool ismatched(false);
+
   for (int i=0; i<vecb.size(); i++)
    {
-ismatched=false;
+     ismatched=false;
       float dR=getDeltaR(fjet, vecb[i]);
       if (dR<0.8) {
-ismatched=true;
-     vecmin.push_back(vecb[i]);
+	ismatched=true;
+	vecmin.push_back(vecb[i]);
+      }
    }
-   }
-   for (int i=0; i<vecmin.size(); i++)
-   {
+  for (int i=0; i<vecmin.size(); i++)
+    {
       vecqgpt+=vecmin[i];
-   }
+    }
   
-if(ismatched) qg_pt=vecqgpt.Pt();
-   return qg_pt;
+  if(ismatched) qg_pt=vecqgpt.Pt();
+  return qg_pt;
+  
 }
+
 double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet)
 {
       double dR[vecfjet.size()];
