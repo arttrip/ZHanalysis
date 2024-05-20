@@ -77,9 +77,10 @@ int main(int argc, char* argv[])
    
   //load framework libraries
   gSystem->Load( "libFWCoreFWLite" );
-  AutoLibraryLoader::enable();
+  // AutoLibraryLoader::enable();
   FWLiteEnabler::enable();
-
+  MVAHandler myMVAHandler_;
+  myMVAHandler_.initTree();
   //configure the process
   const edm::ParameterSet &runProcess = edm::cmspybind11::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("runProcess");
 
@@ -295,15 +296,15 @@ int main(int argc, char* argv[])
   Int_t st4_bb=0;
   Int_t st4_vv=0;
   Int_t st4_ll=0;
-  float dileptonmass;
+  
   
    //####################################################################################################################
     //###########################################           MVAHandler         ###########################################
     //####################################################################################################################
     //construct MVA out put file name
-  TString mvaout = TString ( runProcess.getParameter<std::string>("outdir") ) + "/mva_" + outFileUrl + ".root";
-  MVAHandler myMVAHandler_;
-  if (runMVA) { myMVAHandler_.initTree(mvaout); }
+  // TString mvaout = TString ( runProcess.getParameter<std::string>("outdir") ) + "/mva_" + outFileUrl + ".root";
+  // MVAHandler myMVAHandler_;
+  // if (runMVA) { myMVAHandler_.initTree(mvaout); }
 
   
   
@@ -329,13 +330,13 @@ int main(int argc, char* argv[])
 	continue;
       }
       //tree variables                                                                                                                                
-      Float_t m4b ,pt4b,ptf1,ptf2,ptb1,ptb2,ht,ptl1,ptl2,drll,dphiHZ,n_ad_j,met,btag3,sd_mass1,sd_mass2,xbb1,xbb2,xbbccqq1,xbbccqq2;
+      
       // Calculate xsec weight:                                                                                                                       
       float Lint=43.5*1000;
       float  nev_exp=xsec*Lint;
       float  weight=nev_exp/nevts;
 
-      // Create new object vectors after configuration
+     // Create new object vectors after configuration
       // Jets
       std::vector<TLorentzVector> vec_jet;
       std::vector<TLorentzVector> vec_bjets;
@@ -371,7 +372,8 @@ int main(int argc, char* argv[])
       std::vector<TLorentzVector> vec_zbb;
       std::vector<TLorentzVector> vec_zqq_light;
       std::vector<TLorentzVector> vec_zvv;
-
+      std::vector<std::pair<TLorentzVector,int> > bjet_index;
+      std::vector<std::pair<TLorentzVector,int> > bjet_index_cc;
       //start generator level loop
       for (int imc=0; imc<ev.nmcparticles;imc++)	{
        if(verbose && iev <3) 
@@ -604,9 +606,7 @@ int main(int argc, char* argv[])
     }
 
      // jets & cross cleaning
-    int b_ind1=0;
-    int b_ind2=0;
-    int b_count=0;
+   
    
     for (int i = 0; i < ev.jet; i++)
     {
@@ -651,9 +651,7 @@ int main(int argc, char* argv[])
 	if (ev.jet_btag1[i] > 0.4941)
 	  {
 	    vec_bjets.push_back(p_jet);
-	    b_count++;
-	    if (b_count==1)b_ind1=i;
-	    if (b_count==2)b_ind2=i;
+	    bjet_index.push_back(make_pair(p_jet,i));
 	  }
       }
 
@@ -712,14 +710,15 @@ int main(int argc, char* argv[])
         vec_jet_cc.push_back(vec_jet[j]);
       }
     }
-
-      //jet f jet cross-cleaning
-    for (int j = 0; j < vec_bjets.size(); j++)  {
-      if(dR_j_fj_min(vec_bjets[j],vec_fjet)>0.8) {
-	vec_bjets_cc.push_back(vec_bjets[j]);
-      }  
-    }
     
+      //jet f jet cross-cleaning
+   
+    for (const auto& bjet: bjet_index) {
+      if(dR_j_fj_min(bjet.first,vec_fjet)>0.8) {
+	bjet_index_cc.push_back(make_pair(bjet.first,bjet.second));
+	vec_bjets_cc.push_back(bjet.first);
+      }
+    }
     //-----End config ------------
     //raw events 
     mon.fillHisto("eventflow","histo",0,weight);
@@ -789,7 +788,7 @@ int main(int argc, char* argv[])
     else {
       // inv mass cuts
       
-      dileptonmass=(vec_leptons[0]+vec_leptons[1]).M();
+      float dileptonmass= (vec_leptons[0]+vec_leptons[1]).M();
       if (dileptonmass>100. || dileptonmass < 80.) continue;
       INVM++;
       mon.fillHisto("eventflow","histo",2,weight);
@@ -809,7 +808,8 @@ int main(int argc, char* argv[])
     if(!(isSR1||isSR2))continue;
     // CALCULATE GLOBAL EVENT VARIABLES (BDT INPUT VARIABLES)
 
-
+    Float_t m4b(0.) ,pt4b(0.),ptf1(0.),ptf2(0.),ptb1(0.),ht(0.),dilep_pt(0.),drll(0.),dphiHZ(0.),n_ad_j(-1.),met(0.),
+      btag3(0.),sd_mass1(-1.),sd_mass2(-1.),xbb1(-2.),xbb2(-2.),xbbccqq1(-2.),xbbccqq2(-2.);
     mon.fillHisto("mult","fjet_3",vec_fjet.size(),weight);
     mon.fillHisto("mult","bjet_cc_3",vec_bjets_cc.size(),weight);
     mon.fillHisto("mult","jet_cc_3",vec_jet_cc.size(),weight);
@@ -828,14 +828,14 @@ int main(int argc, char* argv[])
       mon.fillHisto("inv_mass","dilept",(vec_leptons[0]+vec_leptons[1]).M(),weight);
       mon.fillHisto("dR","dilept",getDeltaR(vec_leptons[0],vec_leptons[1]),weight);
       drll=getDeltaR(vec_leptons[0],vec_leptons[1]);
-      
+      dilep_pt=(vec_leptons[0]+vec_leptons[1]).Pt();
        //lepton1 kinematics
-      ptl1=vec_leptons[0].Pt();
+      
       mon.fillHisto("pt","lept1",vec_leptons[0].Pt(),weight);
       mon.fillHisto("eta","lept1",vec_leptons[0].Eta(),weight);
       mon.fillHisto("phi","lept1",vec_leptons[0].Phi(),weight);
       //lepton2 kinematics
-      ptl2=vec_leptons[1].Pt();
+    
       mon.fillHisto("pt","lep2",vec_leptons[1].Pt(),weight);
       mon.fillHisto("eta","lep2",vec_leptons[1].Eta(),weight);
       mon.fillHisto("phi","lep2",vec_leptons[1].Phi(),weight);
@@ -902,13 +902,21 @@ int main(int argc, char* argv[])
         pt4b=(vec_fjet[0]+vec_fjet[1]).Pt();
 	ptf2=vec_fjet[1].Pt();
 	sd_mass2=ev.fjet_softdropM[index2];
-	if(!run0lep)dphiHZ=abs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	if(!run0lep){
+	  if(fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+	    {
+	      dphiHZ=(vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi();
+	    }
+	  else{
+	    dphiHZ=TMath::Pi()-(vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi();
+	  }
+	}
 	mon.fillHisto("eventflow","histo",4,weight);
 	mon.fillHisto("m_bbb","tot",(vec_fjet[0]+vec_fjet[1]).M(),weight);
 	mon.fillHisto("pt_bbb","tot",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
 	mon.fillHisto("m_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).M(),weight);
 	mon.fillHisto("pt_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
-	
+	     
 	if(verbose) { // debugging
 	  cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
 	}
@@ -970,36 +978,50 @@ int main(int argc, char* argv[])
 
     else {
       if (isSR1){
-	btag3=ev.jet_btag1[b_ind1];
+	btag3=ev.jet_btag1[bjet_index_cc[0].second];
 	ptb1=vec_bjets_cc[0].Pt();
 	n_ad_j=vec_jet_cc.size();
 	mon.fillHisto("eventflow","histo",3,weight);
-	mon.fillHisto("btag1","3", ev.jet_btag1[b_ind1],weight);
+	mon.fillHisto("btag1","3", ev.jet_btag1[bjet_index_cc[0].second],weight);
 	mon.fillHisto("pt","bjet1",vec_bjets_cc[0].Pt(),weight);
 	mon.fillHisto("eta","bjet1",vec_bjets_cc[0].Eta(),weight);
 	mon.fillHisto("phi","bjet1",vec_bjets_cc[0].Phi(),weight);
 	if(vec_bjets_cc.size()==1){
 	  m4b=(vec_bjets_cc[0]+vec_fjet[0]).M();
 	  pt4b=(vec_bjets_cc[0]+vec_fjet[0]).Pt();
-          if(!run0lep) dphiHZ=abs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+          if(!run0lep){
+	    if(fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())){
+	      dphiHZ=fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		}
+	    else{
+	      dphiHZ=TMath::Pi()-fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	    }
+	  }
 	  mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
 	  mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
 	  mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
 	  mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
 	}
 	else if(vec_bjets_cc.size()>1){
-	  ptb2=vec_bjets_cc[1].Pt();
+	 
 	  m4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M();
           pt4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt();
-	  if(!run0lep)dphiHZ=abs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
-	    
+	  if(!run0lep){
+	    if(fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())< TMath::Pi())
+	      {
+		dphiHZ=fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	      }
+	    else {
+	      dphiHZ=TMath::Pi()-fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	    }
+	  }
 	  mon.fillHisto("pt","bjet2",vec_bjets_cc[1].Pt(),weight);
 	  mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
 	  mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
 	  mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
 	  mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
 	  
-	 }
+	}
         
       }
     }
@@ -1009,22 +1031,22 @@ int main(int argc, char* argv[])
        //  genWeight > 0 ? mvaweight = weight/xsecWeight : mvaweight = -weight / xsecWeight; // Include all weights except for the xsecWeight
        // if ( isSignalRegion && GoodIdbJets.size() >= 3) 
        //{
-       //	  if(passMet25 && passMt) {
-       myMVAHandler_.getEntry (ptf1,ht,met,sd_mass1,xbb1,xbbccqq1,weight);
+       //	  if(passMet25 && passMt) {_
+       myMVAHandler_.getEntry (isSR1,isSR2,m4b,pt4b,ptf1,sd_mass1,ht,met,xbb1,xbbccqq1,ptf2,sd_mass2,xbb2,xbbccqq2,ptb1,n_ad_j,btag3,dilep_pt,drll,dphiHZ,weight);
 			       //ptl1,ptl2,drll,dphiH
        myMVAHandler_.fillTree();
        //	  }
        //	}
      } // runMVA
      
-    } // end event loop
+    }// end event loop
   printf("\n");
   file->Close();
   
   //write MVA files
-  if (runMVA) { myMVAHandler_.writeTree(); }
-
-      
+ 
+  TString mvaout = TString ( runProcess.getParameter<std::string>("outdir") ) + "/mva_" + outFileUrl + ".root";
+  if (runMVA)myMVAHandler_.writeTree(mvaout);
   std::cout << "reconstruction level: "  << std::endl;
   
   std::cout<< "Cuts," << "No. of events," << "Efficiency" <<std::endl;
