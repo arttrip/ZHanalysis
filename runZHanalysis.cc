@@ -373,7 +373,8 @@ int main(int argc, char* argv[])
       std::vector<TLorentzVector> vec_zqq_light;
       std::vector<TLorentzVector> vec_zvv;
       std::vector<std::pair<TLorentzVector,int> > bjet_index;
-      std::vector<std::pair<TLorentzVector,int> > bjet_index_cc;
+      std::vector<std::pair<TLorentzVector,int> > fjet_index;
+     std::vector<std::pair<TLorentzVector,int> > bjet_index_cc;
       //start generator level loop
       for (int imc=0; imc<ev.nmcparticles;imc++)	{
        if(verbose && iev <3) 
@@ -413,12 +414,12 @@ int main(int argc, char* argv[])
             { // found the A
 	      
               TLorentzVector pa;
-	            pa.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
+	      pa.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
               // Make histograms of the pt, eta, phi, mass of the A:
-		    mon.fillHisto("pt","A",pa.Pt(),weight); 
-		    mon.fillHisto("eta","A",pa.Eta(),weight);mon.fillHisto("phi","A",pa.Phi(),weight);
-		    mon.fillHisto("phi","A",pa.M(),weight);
-		    vec_gena.push_back(pa);
+	      mon.fillHisto("pt","A",pa.Pt(),weight); 
+	      mon.fillHisto("eta","A",pa.Eta(),weight);mon.fillHisto("phi","A",pa.Phi(),weight);
+	      mon.fillHisto("phi","A",pa.M(),weight);
+	      vec_gena.push_back(pa);
             }
 
            
@@ -527,8 +528,8 @@ int main(int argc, char* argv[])
       if (vec_zvv.size()>1) 
 	{ zvv++;  
 	  is_vv=true;}  
-      mon.fillHisto("pt","a2",vec_gena[1].Pt(),weight);
-      mon.fillHisto("pt","a1",vec_gena[0].Pt(),weight);
+      //mon.fillHisto("pt","a2",vec_gena[1].Pt(),weight);
+      //mon.fillHisto("pt","a1",vec_gena[0].Pt(),weight);
       //plot dr and  vector sum pt of bbs of same mom and z->vv event
       if (vec_genbb1_truth.size()>1 ){
 	mon.fillHisto ("dR","bb1",getDeltaR(vec_genbb1_truth[0],vec_genbb1_truth[1]),weight);
@@ -668,7 +669,7 @@ int main(int argc, char* argv[])
          TLorentzVector p_fjet;
          p_fjet.SetPxPyPzE(ev.fjet_px[i], ev.fjet_py[i], ev.fjet_pz[i], ev.fjet_en[i]);
          if(ev.fjet_subjet_count[i]<2)continue;
-         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5 ) continue;
+         if (p_fjet.Pt() <150 || std::fabs(p_fjet.Eta()) > 2.5 ) continue;
          
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
@@ -700,6 +701,7 @@ int main(int argc, char* argv[])
           if (count==1)index1=i;
           if (count==2)index2=i;
           vec_fjet.push_back(p_fjet);
+	  fjet_index.push_back(make_pair(p_fjet,i));
          }
       }
  
@@ -730,7 +732,7 @@ int main(int argc, char* argv[])
      mon.fillHisto("eventflow","histo",1,weight);
     }
     else {
-      if (vec_leptons.size() < 1) continue;
+      if (vec_leptons.size() < 2) continue;
       n_event_lepton_test++;
       mon.fillHisto("eventflow","histo",1,weight);
      
@@ -808,7 +810,7 @@ int main(int argc, char* argv[])
     if(!(isSR1||isSR2))continue;
     // CALCULATE GLOBAL EVENT VARIABLES (BDT INPUT VARIABLES)
 
-    Float_t m4b(0.) ,pt4b(0.),ptf1(0.),ptf2(0.),ptb1(0.),ht(0.),dilep_pt(0.),drll(0.),dphiHZ(0.),n_ad_j(-1.),met(0.),
+    Float_t m4b(0.) ,pt4b(0.),ptf1(0.),ptf2(0.),ptb1(0.),ht(0.),dilep_pt(0.),drll(-1.),dphiHZ(-3.),n_ad_j(-1.),met(0.),
       btag3(0.),sd_mass1(-1.),sd_mass2(-1.),xbb1(-2.),xbb2(-2.),xbbccqq1(-2.),xbbccqq2(-2.);
     mon.fillHisto("mult","fjet_3",vec_fjet.size(),weight);
     mon.fillHisto("mult","bjet_cc_3",vec_bjets_cc.size(),weight);
@@ -849,10 +851,10 @@ int main(int argc, char* argv[])
     mon.fillHisto("phi","fjet1",vec_fjet[0].Phi(),weight);
        
         // fj1 sdmass
-    sd_mass1=ev.fjet_softdropM[index1];
-    mon.fillHisto("fj_sd_mass","1",ev.fjet_softdropM[index1],weight);
-    mon.fillHisto("fj_pt_sd_mass","1",vec_fjet[0].Pt(),ev.fjet_softdropM[index1],weight);
-    mon.fillHisto("subcount","1",ev.fjet_subjet_count[index1],weight);
+    sd_mass1=ev.fjet_softdropM[fjet_index[0].second];
+    mon.fillHisto("fj_sd_mass","1",ev.fjet_softdropM[fjet_index[0].second],weight);
+    mon.fillHisto("fj_pt_sd_mass","1",vec_fjet[0].Pt(),ev.fjet_softdropM[fjet_index[0].second],weight);
+    mon.fillHisto("subcount","1",ev.fjet_subjet_count[fjet_index[0].second],weight);
 	
     bool matched(false);
     bool matched1(false);bool matched2(false);
@@ -880,14 +882,14 @@ int main(int argc, char* argv[])
     }
     if(matched){
       mon.fillHisto("pt","1_mat",vec_fjet[0].Pt(),weight);
-      mon.fillHisto("fj_sd_mass","1_mat",ev.fjet_softdropM[index1],weight);
-      mon.fillHisto("subcount","1_mat",ev.fjet_subjet_count[index1],weight);
+      mon.fillHisto("fj_sd_mass","1_mat",ev.fjet_softdropM[fjet_index[0].second],weight);
+      mon.fillHisto("subcount","1_mat",ev.fjet_subjet_count[fjet_index[0].second],weight);
     }
 		
     //xbb discriminants
-    xbb1=ev.fjet_btag10[index1]/(ev.fjet_btag10[index1]+ev.fjet_btag13[index1]+ev.fjet_btag14[index1]+ev.fjet_btag15[index1]+ev.fjet_btag16[index1]+ev.fjet_btag17[index1]);  
+    xbb1=ev.fjet_btag10[fjet_index[0].second]/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);  
     mon.fillHisto("fjet_btagXbb","1",xbb1,weight);
-    xbbccqq1=(ev.fjet_btag10[index1]+ev.fjet_btag11[index1]+ev.fjet_btag12[index1])/(ev.fjet_btag10[index1]+ev.fjet_btag11[index1]+ev.fjet_btag12[index1]+ev.fjet_btag13[index1]+ev.fjet_btag14[index1]+ev.fjet_btag15[index1]+ev.fjet_btag16[index1]+ev.fjet_btag17[index1]);
+    xbbccqq1=(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second])/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);
     mon.fillHisto("fjet_btagXbbXccXqq","1",xbbccqq1,weight);
     mon.fillHisto("fjet_XbbXccXqq_pt","1",vec_fjet[0].Pt(),xbbccqq1);
     mon.fillHisto("fjet_Xbb_pt","1",vec_fjet[0].Pt(),xbb1,weight);
@@ -901,14 +903,14 @@ int main(int argc, char* argv[])
         m4b=(vec_fjet[0]+vec_fjet[1]).M();
         pt4b=(vec_fjet[0]+vec_fjet[1]).Pt();
 	ptf2=vec_fjet[1].Pt();
-	sd_mass2=ev.fjet_softdropM[index2];
+	sd_mass2=ev.fjet_softdropM[fjet_index[1].second];
 	if(!run0lep){
-	  if(fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+	  if(std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
 	    {
-	      dphiHZ=(vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi();
+	      dphiHZ=std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
 	    }
 	  else{
-	    dphiHZ=TMath::Pi()-(vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi();
+	    dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
 	  }
 	}
 	mon.fillHisto("eventflow","histo",4,weight);
@@ -927,9 +929,9 @@ int main(int argc, char* argv[])
 	mon.fillHisto("phi","fjet2",vec_fjet[1].Phi(),weight);
 	
 	//fj2 sdmass
-	mon.fillHisto("fj_sd_mass","2",ev.fjet_softdropM[index2],weight);
-	mon.fillHisto("fj_pt_sd_mass","2",vec_fjet[1].Pt(),ev.fjet_softdropM[index2],weight);
-	mon.fillHisto("subcount","2",ev.fjet_subjet_count[index2],weight);
+	mon.fillHisto("fj_sd_mass","2",ev.fjet_softdropM[fjet_index[1].second],weight);
+	mon.fillHisto("fj_pt_sd_mass","2",vec_fjet[1].Pt(),ev.fjet_softdropM[fjet_index[1].second],weight);
+	mon.fillHisto("subcount","2",ev.fjet_subjet_count[fjet_index[1].second],weight);
 	
 	bool matched(false);
 	bool matched1(false); bool matched2(false);
@@ -957,18 +959,18 @@ int main(int argc, char* argv[])
 	  }
 	if(matched){
 	  mon.fillHisto("pt","2_mat",vec_fjet[1].Pt(),weight);
-	  mon.fillHisto("fj_sd_mass","2_mat",ev.fjet_softdropM[index2],weight);
-	  mon.fillHisto("subcount","2_mat",ev.fjet_subjet_count[index2],weight);
+	  mon.fillHisto("fj_sd_mass","2_mat",ev.fjet_softdropM[fjet_index[1].second],weight);
+	  mon.fillHisto("subcount","2_mat",ev.fjet_subjet_count[fjet_index[1].second],weight);
 	}
 	
 	
 	  //fj2 xbb discriminants
-	xbb2=ev.fjet_btag10[index2]/(ev.fjet_btag10[index2]+ev.fjet_btag13[index2]+ev.fjet_btag14[index2]+ev.fjet_btag15[index2]+ev.fjet_btag16[index2]+ev.fjet_btag17[index2]);  
+	xbb2=ev.fjet_btag10[fjet_index[1].second]/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);  
 	mon.fillHisto("fjet_btagXbb","2",xbb2,weight);
-        xbbccqq2=(ev.fjet_btag10[index2]+ev.fjet_btag11[index2]+ev.fjet_btag12[index2])/(ev.fjet_btag10[index2]+ev.fjet_btag11[index2]+ev.fjet_btag12[index2]+ev.fjet_btag13[index2]+ev.fjet_btag14[index2]+ev.fjet_btag15[index2]+ev.fjet_btag16[index2]+ev.fjet_btag17[index2]);
+        xbbccqq2=(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second])/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);
 	mon.fillHisto("fjet_btagXbbXccXqq","2",xbbccqq2,weight);
-	float bbtag_fj1=ev.fjet_btag10[index1]/(ev.fjet_btag10[index1]+ev.fjet_btag13[index1]+ev.fjet_btag14[index1]+ev.fjet_btag15[index1]+ev.fjet_btag16[index1]+ev.fjet_btag17[index1]);  
-	float bbccqqtagfj1=(ev.fjet_btag10[index1]+ev.fjet_btag11[index1]+ev.fjet_btag12[index1])/(ev.fjet_btag10[index1]+ev.fjet_btag11[index1]+ev.fjet_btag12[index1]+ev.fjet_btag13[index1]+ev.fjet_btag14[index1]+ev.fjet_btag15[index1]+ev.fjet_btag16[index1]+ev.fjet_btag17[index1]);
+	float bbtag_fj1=ev.fjet_btag10[fjet_index[1].second]/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);  
+	float bbccqqtagfj1=(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second])/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);
 	mon.fillHisto("fj1_fj2_btagXbb","",bbtag_fj1,xbb2,weight);
 	mon.fillHisto("fj1_fj2_btagXbbXccXqq","",bbccqqtagfj1,xbbccqq2,weight);
 	mon.fillHisto("fjet_XbbXccXqq_pt","2t",vec_fjet[1].Pt(),xbbccqq2,weight);
@@ -990,11 +992,12 @@ int main(int argc, char* argv[])
 	  m4b=(vec_bjets_cc[0]+vec_fjet[0]).M();
 	  pt4b=(vec_bjets_cc[0]+vec_fjet[0]).Pt();
           if(!run0lep){
-	    if(fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())){
-	      dphiHZ=fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	    if(fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+	      {
+		dphiHZ=std::fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
 		}
 	    else{
-	      dphiHZ=TMath::Pi()-fabs((vec_fjet[0]+vec_bjets[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	      dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
 	    }
 	  }
 	  mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
@@ -1007,12 +1010,12 @@ int main(int argc, char* argv[])
 	  m4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M();
           pt4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt();
 	  if(!run0lep){
-	    if(fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())< TMath::Pi())
+	    if(fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())< TMath::Pi())
 	      {
-		dphiHZ=fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		dphiHZ=fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
 	      }
 	    else {
-	      dphiHZ=TMath::Pi()-fabs((vec_fjet[0]+vec_bjets[0]+vec_bjets[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	      dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
 	    }
 	  }
 	  mon.fillHisto("pt","bjet2",vec_bjets_cc[1].Pt(),weight);
