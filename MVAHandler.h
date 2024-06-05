@@ -27,6 +27,8 @@ struct MVAEvtContainer
   //catagory type
   bool isSR1=false;
   bool isSR2=false;
+  bool is2b=false;
+  bool is3b=false;
   float m4b=-1;
   float pt4b=-1;
   float ptf1=-1;
@@ -40,11 +42,16 @@ struct MVAEvtContainer
   float xbb2=-2;				\
   float xbbccqq2=-2;
   float ptb1=-1;
+  float ptb2=-1;
   float n_ad_j=-1;
+  float btag1=-1;
   float btag3=-1;
+  float drjj=-1;
+  float dphi_met_j=-1;
   float dilep_pt=-1;
   float drll=-1;
   float dphiHZ=-1;
+  float dphi_met_l=-1;
   float weight=0;
 };
 
@@ -63,6 +70,8 @@ class MVAHandler
   void resetStruct();
   void getEntry(bool isSR1,
 		bool isSR2,
+		bool is2b,
+		bool is3b,
 		float m4b,
 		float pt4b,
 		float ptf1,
@@ -76,11 +85,16 @@ class MVAHandler
 		float xbb2,			\
 		float xbbccqq2,
 		float ptb1,
+		float ptb2,
 		float n_ad_j,
+		float btag1,
 		float btag3,
+		float drjj,
+		float dphi_met_j,
 		float dilep_pt,
 		float drll,
 		float dphiHZ,
+		float dphi_met_l,
 	        float weight);
 		// float ptf1,float ht,float met,float sd_mass1,
 		//float xbb1,float xbbccqq1,
@@ -88,10 +102,13 @@ class MVAHandler
               
 
   //write mode, to mva tree
+  //bool run0lep(false);
   TFile* MVAofile;
   //the tree, 2 for 3b 4b separately
   TTree *t1;
   TTree *t2;
+  TTree *t3;
+  TTree *t4;
   bool initTree();
   void fillTree();
   void writeTree(TString mvaout);
