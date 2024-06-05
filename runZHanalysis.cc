@@ -59,9 +59,13 @@ using namespace std;
 double getDeltaR(TLorentzVector vec_1, TLorentzVector vec_2);
 bool jet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb);
 double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet);
+double dphi_met_j_min(float metphi,std::vector<TLorentzVector> jet,std::vector<TLorentzVector> fjet);
 float fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) ;
 double Ht(std::vector<TLorentzVector> vecjet,std::vector<TLorentzVector> vecfjet);
 std::vector<TLorentzVector> sort_vec_pt(std::vector<TLorentzVector> vec);
+bool sortBtag( std::pair<TLorentzVector,float>  vec_jet_and_btagi,std::pair<TLorentzVector,float> vec_jet_and_btagj){
+  return  vec_jet_and_btagi.second >  vec_jet_and_btagj.second ;
+}
 
 int main(int argc, char* argv[])
 {
@@ -85,6 +89,7 @@ int main(int argc, char* argv[])
   const edm::ParameterSet &runProcess = edm::cmspybind11::readPSetsFrom(argv[1])->getParameter<edm::ParameterSet>("runProcess");
 
   bool run0lep = runProcess.getParameter<bool>("run0lep");
+  bool runbjets = runProcess.getParameter<bool>("runbjets");
   // will produce the input root trees to BDT training (optional)
   bool runMVA = runProcess.getParameter<bool>("runMVA");
   
@@ -137,7 +142,8 @@ int main(int argc, char* argv[])
  
 
   SmartSelectionMonitor mon;
-  
+  TH1F *drbf= new TH1F ("dr-min-bjet-fjet", ";dr;Events", 100,0,8);
+  TH1F *drjf= new TH1F ("dr-min-jet-fjet", ";dr;Events", 100,0,8);
   TH1F *h=(TH1F*) mon.addHistogram( new TH1F ("eventflow", ";;Events", 5,0,5) );
   h->GetXaxis()->SetBinLabel(1,"Raw");
   if (run0lep) {
@@ -147,8 +153,32 @@ int main(int argc, char* argv[])
     h->GetXaxis()->SetBinLabel(2,"2 leptons");
     h->GetXaxis()->SetBinLabel(3,"Z-mass window"); 
   }
-  h->GetXaxis()->SetBinLabel(4,">=1 f-jet and 1 AK4 b-jet");
+  if(runbjets){
+     h->GetXaxis()->SetBinLabel(4,"=2 AK4 b-jets");
+     h->GetXaxis()->SetBinLabel(5,">=3 AK4 b-jets");
+  }
+  else{
+  h->GetXaxis()->SetBinLabel(4,"=1 f-jet and 1 AK4 b-jet");
   h->GetXaxis()->SetBinLabel(5,">=2 f-jets");
+  }
+
+  TH1F *hr= new TH1F ("raw_eventflow", ";;Events", 5,1,6);
+  hr->GetXaxis()->SetBinLabel(1,"Raw");
+  if (run0lep) {
+    hr->GetXaxis()->SetBinLabel(2,"0 lepton");
+    hr->GetXaxis()->SetBinLabel(3,"MET cut>170");
+  } else {
+    hr->GetXaxis()->SetBinLabel(2,"2 leptons");
+    hr->GetXaxis()->SetBinLabel(3,"Z-mass window");
+  }
+  if(runbjets){
+     hr->GetXaxis()->SetBinLabel(4,"=2 AK4 b-jets");
+     hr->GetXaxis()->SetBinLabel(5,">=3 AK4 b-jets");
+  }
+  else{
+  hr->GetXaxis()->SetBinLabel(4,"=1 f-jet and 1 AK4 b-jet");
+  hr->GetXaxis()->SetBinLabel(5,">=2 f-jets");
+  }
 
   //reconstruction level
   //dR between leptons-jets/leptons-fjets/jets-fjets: before and after cross-cleaning
@@ -175,7 +205,7 @@ int main(int argc, char* argv[])
   mon.addHistogram( new TH1F("pt", ";p_{T} [GeV];Events", 50, 0, 500));
    mon.addHistogram( new TH1F("M", ";M [GeV];Events", 50, 0, 500));
   mon.addHistogram( new TH1F("eta", ";#eta ;Events", 50, -5, 5));
-  mon.addHistogram( new TH1F("phi", ";#phi;Events", 50, -TMath::Pi(), TMath::Pi()));
+  mon.addHistogram( new TH1F("phi", ";#phi;Events", 50, -3*TMath::Pi(), 3*TMath::Pi()));
   //fjet matched pt vs met(vv)
   
   mon.addHistogram( new TH2F("pt_bb_vs_met", "gen/reco",50,0,500, 50, 0,500));
@@ -286,6 +316,8 @@ int main(int argc, char* argv[])
   Int_t n_fjets=0;
   Int_t INVM=0;
   Int_t METCUT=0;
+  Int_t sr1=0;
+  Int_t sr2=0;
   //z->:
   Int_t zqq_light=0;
   Int_t zbb=0;
@@ -296,8 +328,14 @@ int main(int argc, char* argv[])
   Int_t st4_bb=0;
   Int_t st4_vv=0;
   Int_t st4_ll=0;
-  
-  
+
+  double totalNumberofEvents(0.);
+  TH1F* nevtH = (TH1F *) file->Get("mainNtuplizer/nevents");
+  totalNumberofEvents = nevtH->GetBinContent(1);
+  hr->SetBinContent(1, totalNumberofEvents);
+  float Lint=43.5*1000;
+  double nev_exp=xsec*Lint;
+  double weight=nev_exp/nevts;
    //####################################################################################################################
     //###########################################           MVAHandler         ###########################################
     //####################################################################################################################
@@ -332,9 +370,7 @@ int main(int argc, char* argv[])
       //tree variables                                                                                                                                
       
       // Calculate xsec weight:                                                                                                                       
-      float Lint=43.5*1000;
-      float  nev_exp=xsec*Lint;
-      float  weight=nev_exp/nevts;
+      
 
      // Create new object vectors after configuration
       // Jets
@@ -374,7 +410,8 @@ int main(int argc, char* argv[])
       std::vector<TLorentzVector> vec_zvv;
       std::vector<std::pair<TLorentzVector,int> > bjet_index;
       std::vector<std::pair<TLorentzVector,int> > fjet_index;
-     std::vector<std::pair<TLorentzVector,int> > bjet_index_cc;
+      std::vector<std::pair<TLorentzVector,int> > bjet_index_cc;
+      std::vector<std::pair<TLorentzVector,float> > vec_jet_and_btag;
       //start generator level loop
       for (int imc=0; imc<ev.nmcparticles;imc++)	{
        if(verbose && iev <3) 
@@ -647,7 +684,8 @@ int main(int argc, char* argv[])
         
        //bjets
       if (! overlap ) {
-	vec_jet.push_back(p_jet);    
+	vec_jet.push_back(p_jet);
+	vec_jet_and_btag.push_back(make_pair(p_jet,ev.jet_btag1[i]));
 
 	if (ev.jet_btag1[i] > 0.4941)
 	  {
@@ -657,7 +695,13 @@ int main(int argc, char* argv[])
       }
 
     } // end jet loop
+    //sort the b-tagged jets by discriminator value   
+    std::sort(vec_jet_and_btag.begin(), vec_jet_and_btag.end(), sortBtag);
 
+    //fill the vec_jet
+    for (std::vector<TLorentzVector>::size_type i=0; i<vec_jet_and_btag.size(); i++) {
+      vec_jet.push_back(vec_jet_and_btag[i].first);
+    }
     //fjets
     int index1=0;
     int index2=0;
@@ -669,7 +713,7 @@ int main(int argc, char* argv[])
          TLorentzVector p_fjet;
          p_fjet.SetPxPyPzE(ev.fjet_px[i], ev.fjet_py[i], ev.fjet_pz[i], ev.fjet_en[i]);
          if(ev.fjet_subjet_count[i]<2)continue;
-         if (p_fjet.Pt() <150 || std::fabs(p_fjet.Eta()) > 2.5 ) continue;
+         if (p_fjet.Pt() <30 || std::fabs(p_fjet.Eta()) > 2.5 ) continue;
          
          for (int mn_count = 0; mn_count < vec_muons.size(); mn_count++)
          {
@@ -708,6 +752,7 @@ int main(int argc, char* argv[])
     
     // do it for vec_jet as well
     for (int j = 0; j < vec_jet.size(); j++)  {
+      drjf->Fill(dR_j_fj_min(vec_jet[j],vec_fjet));
       if(dR_j_fj_min(vec_jet[j],vec_fjet)>0.8) {
         vec_jet_cc.push_back(vec_jet[j]);
       }
@@ -716,6 +761,7 @@ int main(int argc, char* argv[])
       //jet f jet cross-cleaning
    
     for (const auto& bjet: bjet_index) {
+      drbf->Fill(dR_j_fj_min(bjet.first,vec_fjet));
       if(dR_j_fj_min(bjet.first,vec_fjet)>0.8) {
 	bjet_index_cc.push_back(make_pair(bjet.first,bjet.second));
 	vec_bjets_cc.push_back(bjet.first);
@@ -723,20 +769,23 @@ int main(int argc, char* argv[])
     }
     //-----End config ------------
     //raw events 
+    
     mon.fillHisto("eventflow","histo",0,weight);
+    
        // lepton cuts---------------------------------------------------
 
     if(run0lep) {
      if (vec_leptons.size() !=0) continue;
      n_event_lepton_test++;
      mon.fillHisto("eventflow","histo",1,weight);
+     hr->Fill(2);
     }
     else {
       if (vec_leptons.size() < 2) continue;
       n_event_lepton_test++;
       mon.fillHisto("eventflow","histo",1,weight);
-     
-      
+      //mon.fillHisto("raw_eventflow","histo",1);
+      hr->Fill(2);
     }
    
     // pt(bb)vs MET                                                                                                                                                             
@@ -779,10 +828,13 @@ int main(int argc, char* argv[])
     //step 2 MET/INV MASS CUT   
         
     if(run0lep) {
-       // metcut                                                                                                                                               
+       // metcut
+      
       if (ev.met_pt < 170.) continue;
       METCUT++;
       mon.fillHisto("eventflow","histo",2,weight);
+      //mon.fillHisto("raw_eventflow","histo",2);
+      hr->Fill(3);
       mon.fillHisto("mult","fjet_2",vec_fjet.size(),weight);
       mon.fillHisto("mult","jet_cc_2",vec_jet_cc.size(),weight);
       mon.fillHisto("mult","bjet_cc_2",vec_bjets_cc.size(),weight);
@@ -794,151 +846,221 @@ int main(int argc, char* argv[])
       if (dileptonmass>100. || dileptonmass < 80.) continue;
       INVM++;
       mon.fillHisto("eventflow","histo",2,weight);
+      //mon.fillHisto("raw_eventflow","histo",2);
+      hr->Fill(3);
       mon.fillHisto("mult","fjet_2",vec_fjet.size(),weight);
       mon.fillHisto("mult","jet_cc_2",vec_jet_cc.size(),weight);
       mon.fillHisto("mult","bjet_cc_2",vec_bjets_cc.size(),weight);
     }
    
     
-    //step 3 : // AT LEAST 2 FAT JETS or At least 1fat jet and 1 jet
-       
+    //step 3 : // 
+    Float_t m4b(-1) ,pt4b(-1.),ptf1(-1.),ptf2(-1.),ptb1(-1.),ptb2(-1),ht(-1.),dilep_pt(-1.),drll(-1.),dphiHZ(-1.),n_ad_j(-1.),met(-1.),btag1(-1),
+      btag3(-1),sd_mass1(-1.),sd_mass2(-1.),xbb1(-2.),xbb2(-2.),xbbccqq1(-2.),xbbccqq2(-2.),drjj(-1),dphi_met_j(-1),dphi_met_l(-1);
+    bool is2b(false);
+    bool is3b(false);
     bool isSR1(false);
-    bool isSR2(false);     
-    if (vec_fjet.size()>=1 && vec_bjets_cc.size()>=1)isSR1=true;
-    if  (vec_fjet.size()>=2)isSR2=true;
-    TString tag_cat; 
-    if(!(isSR1||isSR2))continue;
-    // CALCULATE GLOBAL EVENT VARIABLES (BDT INPUT VARIABLES)
-
-    Float_t m4b(0.) ,pt4b(0.),ptf1(0.),ptf2(0.),ptb1(0.),ht(0.),dilep_pt(0.),drll(-1.),dphiHZ(-3.),n_ad_j(-1.),met(0.),
-      btag3(0.),sd_mass1(-1.),sd_mass2(-1.),xbb1(-2.),xbb2(-2.),xbbccqq1(-2.),xbbccqq2(-2.);
-    mon.fillHisto("mult","fjet_3",vec_fjet.size(),weight);
-    mon.fillHisto("mult","bjet_cc_3",vec_bjets_cc.size(),weight);
-    mon.fillHisto("mult","jet_cc_3",vec_jet_cc.size(),weight);
-    mon.fillHisto("Ht","total",Ht(vec_jet_cc,vec_fjet),weight);
-    ht=Ht(vec_jet_cc,vec_fjet);
-     //met
-    met=ev.met_pt;
-    mon.fillHisto("met","step_3",ev.met_pt,weight);
-    mon.fillHisto("met_phi","step_3",ev.met_phi,weight);
-    if(hasMETtrigger1||hasMETtrigger2){
-      mon.fillHisto("met","step3_trig",ev.met_pt,weight);
-      mon.fillHisto("met_phi","step3_trig",ev.met_phi,weight);
-    }
-    //2lept inv mass
-    if(!run0lep){
-      mon.fillHisto("inv_mass","dilept",(vec_leptons[0]+vec_leptons[1]).M(),weight);
-      mon.fillHisto("dR","dilept",getDeltaR(vec_leptons[0],vec_leptons[1]),weight);
-      drll=getDeltaR(vec_leptons[0],vec_leptons[1]);
-      dilep_pt=(vec_leptons[0]+vec_leptons[1]).Pt();
-       //lepton1 kinematics
-      
-      mon.fillHisto("pt","lept1",vec_leptons[0].Pt(),weight);
-      mon.fillHisto("eta","lept1",vec_leptons[0].Eta(),weight);
-      mon.fillHisto("phi","lept1",vec_leptons[0].Phi(),weight);
-      //lepton2 kinematics
-    
-      mon.fillHisto("pt","lep2",vec_leptons[1].Pt(),weight);
-      mon.fillHisto("eta","lep2",vec_leptons[1].Eta(),weight);
-      mon.fillHisto("phi","lep2",vec_leptons[1].Phi(),weight);
-    }
-      
-       // Fat-jet analysis:
-	//fj1 kinematics
-    ptf1=vec_fjet[0].Pt();
-    mon.fillHisto("pt","fjet1",vec_fjet[0].Pt(),weight);
-    mon.fillHisto("eta","fjet1",vec_fjet[0].Eta(),weight);
-    mon.fillHisto("phi","fjet1",vec_fjet[0].Phi(),weight);
-       
-        // fj1 sdmass
-    sd_mass1=ev.fjet_softdropM[fjet_index[0].second];
-    mon.fillHisto("fj_sd_mass","1",ev.fjet_softdropM[fjet_index[0].second],weight);
-    mon.fillHisto("fj_pt_sd_mass","1",vec_fjet[0].Pt(),ev.fjet_softdropM[fjet_index[0].second],weight);
-    mon.fillHisto("subcount","1",ev.fjet_subjet_count[fjet_index[0].second],weight);
-	
-    bool matched(false);
-    bool matched1(false);bool matched2(false);
-	
-    if(isSignal) 
+    bool isSR2(false);
+    if(runbjets)
       {
-	if(fjet_matched(vec_fjet[0],vec_genbb1_truth)>0)
+	if(vec_bjets.size()==2)is2b=true;
+	if(vec_bjets.size()>=3)is3b=true;
+	if(!(is2b||is3b))continue;
+	ptb1=vec_bjets[0].Pt();
+	ptb2=vec_bjets[1].Pt();
+	TLorentzVector tot_bjets;
+	for(std::vector<TLorentzVector>::size_type i=0; i<vec_bjets.size(); i++){
+	  if(i==4) break;
+	   tot_bjets += vec_bjets[i];
+	}
+	if(!run0lep){
+	  mon.fillHisto("inv_mass","dilept",(vec_leptons[0]+vec_leptons[1]).M(),weight);
+	  mon.fillHisto("dR","dilept",getDeltaR(vec_leptons[0],vec_leptons[1]),weight);
+	  drll=getDeltaR(vec_leptons[0],vec_leptons[1]);
+	  dilep_pt=(vec_leptons[0]+vec_leptons[1]).Pt();
+	  dphi_met_l=min(fabs(vec_leptons[0].Phi()-ev.met_phi),fabs(vec_leptons[1].Phi()-ev.met_phi));
+	  if(fabs( tot_bjets.Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+		  {
+		    dphiHZ=std::fabs( tot_bjets.Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		  }
+		else{
+		  dphiHZ=2*TMath::Pi()-std::fabs( tot_bjets.Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		}
+	      }
+	drjj=getDeltaR(vec_bjets[0],vec_bjets[1]);
+	met=ev.met_pt;
+	n_ad_j=vec_jet.size()-vec_bjets.size();
+	btag1=vec_jet_and_btag[0].second;
+	pt4b = tot_bjets.Pt();
+	m4b = tot_bjets.M();
+	ht = 0;
+	dphi_met_j=999;
+	for(std::vector<TLorentzVector>::size_type i=0; i<vec_jet.size(); i++){
+	  ht += vec_jet[i].Pt();
+	  if (fabs( deltaPhi(vec_jet[i].Phi(),ev.met_phi))<dphi_met_j)dphi_met_j=fabs( deltaPhi(vec_jet[i].Phi(),ev.met_phi));
+	}
+	
+	if(is2b){
+	  btag3=vec_jet_and_btag[1].second;
+	  mon.fillHisto("eventflow","histo",3,weight);
+	  hr->Fill(4);
+	}
+	else if(is3b){
+	  btag3=vec_jet_and_btag[2].second;
+	  mon.fillHisto("eventflow","histo",4,weight);
+          hr->Fill(5);
+	}
+      }
+    else if(!runbjets)
+      {
+	if (vec_fjet.size()==1 && vec_bjets_cc.size()>=1)isSR1=true;
+	if  (vec_fjet.size()>=2)isSR2=true;
+	TString tag_cat; 
+	if(!(isSR1||isSR2))continue;
+	
+	// CALCULATE GLOBAL EVENT VARIABLES (BDT INPUT VARIABLES)
+	
+	
+	mon.fillHisto("mult","fjet_3",vec_fjet.size(),weight);
+	mon.fillHisto("mult","bjet_cc_3",vec_bjets_cc.size(),weight);
+	mon.fillHisto("mult","jet_cc_3",vec_jet_cc.size(),weight);
+	mon.fillHisto("Ht","total",Ht(vec_jet_cc,vec_fjet),weight);
+	ht=Ht(vec_jet_cc,vec_fjet);
+	//met
+	met=ev.met_pt;
+	//dphi_met_j=dphi_met_j_min(ev.met_phi,vec_fjet,vec_jet_cc);
+	mon.fillHisto("met","step_3",ev.met_pt,weight);
+	mon.fillHisto("met_phi","step_3",ev.met_phi,weight);
+	if(hasMETtrigger1||hasMETtrigger2){
+	  mon.fillHisto("met","step3_trig",ev.met_pt,weight);
+	  mon.fillHisto("met_phi","step3_trig",ev.met_phi,weight);
+	}
+	//2lept inv mass
+	if(!run0lep){
+	  mon.fillHisto("inv_mass","dilept",(vec_leptons[0]+vec_leptons[1]).M(),weight);
+	  mon.fillHisto("dR","dilept",getDeltaR(vec_leptons[0],vec_leptons[1]),weight);
+	  drll=getDeltaR(vec_leptons[0],vec_leptons[1]);
+	  dilep_pt=(vec_leptons[0]+vec_leptons[1]).Pt();
+	  dphi_met_l=min(fabs(vec_leptons[0].Phi()-ev.met_phi),fabs(vec_leptons[1].Phi()-ev.met_phi));       //lepton1 kinematics
+	  
+	  mon.fillHisto("pt","lept1",vec_leptons[0].Pt(),weight);
+	  mon.fillHisto("eta","lept1",vec_leptons[0].Eta(),weight);
+	  mon.fillHisto("phi","lept1",vec_leptons[0].Phi(),weight);
+	  //lepton2 kinematics
+	  
+	  mon.fillHisto("pt","lep2",vec_leptons[1].Pt(),weight);
+	  mon.fillHisto("eta","lep2",vec_leptons[1].Eta(),weight);
+	  mon.fillHisto("phi","lep2",vec_leptons[1].Phi(),weight);
+	}
+	
+	// Fat-jet analysis:
+	//fj1 kinematics
+	ptf1=vec_fjet[0].Pt();
+	mon.fillHisto("pt","fjet1",vec_fjet[0].Pt(),weight);
+	mon.fillHisto("eta","fjet1",vec_fjet[0].Eta(),weight);
+	mon.fillHisto("phi","fjet1",vec_fjet[0].Phi(),weight);
+	
+        // fj1 sdmass
+	sd_mass1=ev.fjet_softdropM[fjet_index[0].second];
+	mon.fillHisto("fj_sd_mass","1",ev.fjet_softdropM[fjet_index[0].second],weight);
+	mon.fillHisto("fj_pt_sd_mass","1",vec_fjet[0].Pt(),ev.fjet_softdropM[fjet_index[0].second],weight);
+	mon.fillHisto("subcount","1",ev.fjet_subjet_count[fjet_index[0].second],weight);
+	
+	bool matched(false);
+	bool matched1(false);bool matched2(false);
+	
+	if(isSignal) 
 	  {
-	    mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
-	    matched1=true;
-	  } 
+	    if(fjet_matched(vec_fjet[0],vec_genbb1_truth)>0)
+	      {
+		mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
+		matched1=true;
+	      } 
 	else if( fjet_matched(vec_fjet[0],vec_genbb2_truth)>0)
 	  {
 	    mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt(),weight);
 	    matched2=true;  
 	  }
-	if(matched1||matched2)matched=true;
-      }
-    else { // backgrounds:
-      
-      if( fjet_matched(vec_fjet[0],vec_genqg)>0){
-	mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),fjet_matched(vec_fjet[0],vec_genqg),weight);
-	matched=true;
-      }
-    }
-    if(matched){
-      mon.fillHisto("pt","1_mat",vec_fjet[0].Pt(),weight);
-      mon.fillHisto("fj_sd_mass","1_mat",ev.fjet_softdropM[fjet_index[0].second],weight);
-      mon.fillHisto("subcount","1_mat",ev.fjet_subjet_count[fjet_index[0].second],weight);
-    }
-		
-    //xbb discriminants
-    xbb1=ev.fjet_btag10[fjet_index[0].second]/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);  
-    mon.fillHisto("fjet_btagXbb","1",xbb1,weight);
-    xbbccqq1=(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second])/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);
-    mon.fillHisto("fjet_btagXbbXccXqq","1",xbbccqq1,weight);
-    mon.fillHisto("fjet_XbbXccXqq_pt","1",vec_fjet[0].Pt(),xbbccqq1);
-    mon.fillHisto("fjet_Xbb_pt","1",vec_fjet[0].Pt(),xbb1,weight);
-	
-	
-      
-    
-      // fjet2:
-    if (isSR2)
-      {
-        m4b=(vec_fjet[0]+vec_fjet[1]).M();
-        pt4b=(vec_fjet[0]+vec_fjet[1]).Pt();
-	ptf2=vec_fjet[1].Pt();
-	sd_mass2=ev.fjet_softdropM[fjet_index[1].second];
-	if(!run0lep){
-	  if(std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
-	    {
-	      dphiHZ=std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
-	    }
-	  else{
-	    dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
+	    if(matched1||matched2)matched=true;
 	  }
+	else { // backgrounds:
+	  
+	  if( fjet_matched(vec_fjet[0],vec_genqg)>0){
+	    mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),fjet_matched(vec_fjet[0],vec_genqg),weight);
+	    matched=true;
+      }
 	}
-	mon.fillHisto("eventflow","histo",4,weight);
-	mon.fillHisto("m_bbb","tot",(vec_fjet[0]+vec_fjet[1]).M(),weight);
-	mon.fillHisto("pt_bbb","tot",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
-	mon.fillHisto("m_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).M(),weight);
-	mon.fillHisto("pt_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
-	     
-	if(verbose) { // debugging
-	  cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
+	if(matched){
+	  mon.fillHisto("pt","1_mat",vec_fjet[0].Pt(),weight);
+	  mon.fillHisto("fj_sd_mass","1_mat",ev.fjet_softdropM[fjet_index[0].second],weight);
+	  mon.fillHisto("subcount","1_mat",ev.fjet_subjet_count[fjet_index[0].second],weight);
 	}
 	
-	//fj2 kinematics
-	mon.fillHisto("pt","fjet2",vec_fjet[1].Pt(),weight);
-	mon.fillHisto("eta","fjet2",vec_fjet[1].Eta(),weight);
-	mon.fillHisto("phi","fjet2",vec_fjet[1].Phi(),weight);
+	//xbb discriminants
+	xbb1=ev.fjet_btag10[fjet_index[0].second]/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);
+	if(TMath::IsNaN(xbb1)||std::isinf(xbb1))xbb1=-1;
+	mon.fillHisto("fjet_btagXbb","1",xbb1,weight);
+	xbbccqq1=(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second])/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag11[fjet_index[0].second]+ev.fjet_btag12[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);
+	if(TMath::IsNaN(xbbccqq1)||std::isinf(xbbccqq1))xbbccqq1=-1;
+	mon.fillHisto("fjet_btagXbbXccXqq","1",xbbccqq1,weight);
+	mon.fillHisto("fjet_XbbXccXqq_pt","1",vec_fjet[0].Pt(),xbbccqq1);
+	mon.fillHisto("fjet_Xbb_pt","1",vec_fjet[0].Pt(),xbb1,weight);
 	
-	//fj2 sdmass
-	mon.fillHisto("fj_sd_mass","2",ev.fjet_softdropM[fjet_index[1].second],weight);
-	mon.fillHisto("fj_pt_sd_mass","2",vec_fjet[1].Pt(),ev.fjet_softdropM[fjet_index[1].second],weight);
-	mon.fillHisto("subcount","2",ev.fjet_subjet_count[fjet_index[1].second],weight);
 	
-	bool matched(false);
-	bool matched1(false); bool matched2(false);
 	
-	if(isSignal) 
+	
+	// fjet2:
+	if (isSR2)
 	  {
-	    if(  fjet_matched(vec_fjet[1],vec_genbb1_truth)>0)
+	    sr2++;
+	    m4b=(vec_fjet[0]+vec_fjet[1]).M();
+	    pt4b=(vec_fjet[0]+vec_fjet[1]).Pt();
+	    ptf2=vec_fjet[1].Pt();
+	    sd_mass2=ev.fjet_softdropM[fjet_index[1].second];
+	    drjj=getDeltaR(vec_fjet[0],vec_fjet[1]);
+	    mon.fillHisto("phi","met_sr2",ev.met_phi,weight);
+	    mon.fillHisto("phi","fjet1_sr2",vec_fjet[0].Phi(),weight);
+	    mon.fillHisto("phi","fjet2_sr2",vec_fjet[1].Phi(),weight);
+	    mon.fillHisto("phi","fjet1_met_sr2",fabs(vec_fjet[0].Phi()-ev.met_phi),weight);
+	    //dphi_met_j=min(fabs(deltaPhi((vec_fjet[0].Phi(),ev.met_phi),fabs(vec_fjet[1].Phi()-ev.met_phi));
+	    dphi_met_j=min(fabs(deltaPhi(vec_fjet[0].Phi(),ev.met_phi)),fabs(deltaPhi(vec_fjet[1].Phi(),ev.met_phi))); 
+	    if(!run0lep){
+	      if(std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+		{
+		  dphiHZ=std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		}
+	      else{
+		dphiHZ=2*TMath::Pi()-std::fabs((vec_fjet[0]+vec_fjet[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	      }
+	    }
+	    mon.fillHisto("eventflow","histo",4,weight);
+	    //mon.fillHisto("raw_eventflow","histo",4);
+	    hr->Fill(5);
+	    mon.fillHisto("m_bbb","tot",(vec_fjet[0]+vec_fjet[1]).M(),weight);
+	    mon.fillHisto("pt_bbb","tot",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
+	    mon.fillHisto("m_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).M(),weight);
+	    mon.fillHisto("pt_bbb","sr2",(vec_fjet[0]+vec_fjet[1]).Pt(),weight);
+	    
+	    if(verbose) { // debugging
+	      cout << "Fatjet1 pT = " << vec_fjet[0].Pt() << " and fatjet2 pT= " << vec_fjet[1].Pt() << endl;
+	    }
+	    
+	    //fj2 kinematics
+	    mon.fillHisto("pt","fjet2",vec_fjet[1].Pt(),weight);
+	    mon.fillHisto("eta","fjet2",vec_fjet[1].Eta(),weight);
+	    mon.fillHisto("phi","fjet2",vec_fjet[1].Phi(),weight);
+	    
+	    //fj2 sdmass
+	    mon.fillHisto("fj_sd_mass","2",ev.fjet_softdropM[fjet_index[1].second],weight);
+	    mon.fillHisto("fj_pt_sd_mass","2",vec_fjet[1].Pt(),ev.fjet_softdropM[fjet_index[1].second],weight);
+	    mon.fillHisto("subcount","2",ev.fjet_subjet_count[fjet_index[1].second],weight);
+	    
+	    bool matched(false);
+	    bool matched1(false); bool matched2(false);
+	    
+	    if(isSignal) 
+	      {
+		if(  fjet_matched(vec_fjet[1],vec_genbb1_truth)>0)
 	      {
 		mon.fillHisto("fj_pt_bb_pt","2",vec_fjet[1].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
 		matched1=true;
@@ -965,9 +1087,12 @@ int main(int argc, char* argv[])
 	
 	
 	  //fj2 xbb discriminants
-	xbb2=ev.fjet_btag10[fjet_index[1].second]/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);  
+	
+	xbb2=ev.fjet_btag10[fjet_index[1].second]/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);
+	if(TMath::IsNaN(xbb2)||std::isinf(xbb2))xbb2=-1;
 	mon.fillHisto("fjet_btagXbb","2",xbb2,weight);
         xbbccqq2=(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second])/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);
+	if(TMath::IsNaN(xbbccqq2)||std::isinf(xbbccqq2))xbbccqq2=-1;
 	mon.fillHisto("fjet_btagXbbXccXqq","2",xbbccqq2,weight);
 	float bbtag_fj1=ev.fjet_btag10[fjet_index[1].second]/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);  
 	float bbccqqtagfj1=(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second])/(ev.fjet_btag10[fjet_index[1].second]+ev.fjet_btag11[fjet_index[1].second]+ev.fjet_btag12[fjet_index[1].second]+ev.fjet_btag13[fjet_index[1].second]+ev.fjet_btag14[fjet_index[1].second]+ev.fjet_btag15[fjet_index[1].second]+ev.fjet_btag16[fjet_index[1].second]+ev.fjet_btag17[fjet_index[1].second]);
@@ -978,65 +1103,75 @@ int main(int argc, char* argv[])
       }
     
 
-    else {
-      if (isSR1){
-	btag3=ev.jet_btag1[bjet_index_cc[0].second];
-	ptb1=vec_bjets_cc[0].Pt();
-	n_ad_j=vec_jet_cc.size();
-	mon.fillHisto("eventflow","histo",3,weight);
-	mon.fillHisto("btag1","3", ev.jet_btag1[bjet_index_cc[0].second],weight);
-	mon.fillHisto("pt","bjet1",vec_bjets_cc[0].Pt(),weight);
-	mon.fillHisto("eta","bjet1",vec_bjets_cc[0].Eta(),weight);
-	mon.fillHisto("phi","bjet1",vec_bjets_cc[0].Phi(),weight);
-	if(vec_bjets_cc.size()==1){
-	  m4b=(vec_bjets_cc[0]+vec_fjet[0]).M();
-	  pt4b=(vec_bjets_cc[0]+vec_fjet[0]).Pt();
-          if(!run0lep){
-	    if(fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
-	      {
-		dphiHZ=std::fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+	else {
+	  if (isSR1){
+	    sr1++;
+	    btag3=ev.jet_btag1[bjet_index_cc[0].second];
+	    ptb1=vec_bjets_cc[0].Pt();
+	    n_ad_j=vec_jet_cc.size();
+	    drjj=getDeltaR(vec_fjet[0],vec_bjets_cc[0]);
+	    mon.fillHisto("phi","met_sr1",ev.met_phi,weight);
+	    mon.fillHisto("eventflow","histo",3,weight);
+	    //mon.fillHisto("raw_eventflow","histo",3);
+	    hr->Fill(4);
+	    mon.fillHisto("btag1","3", ev.jet_btag1[bjet_index_cc[0].second],weight);
+	    mon.fillHisto("pt","bjet1",vec_bjets_cc[0].Pt(),weight);
+	    mon.fillHisto("eta","bjet1",vec_bjets_cc[0].Eta(),weight);
+	    mon.fillHisto("phi","bjet1",vec_bjets_cc[0].Phi(),weight);
+	    if(vec_bjets_cc.size()==1){
+	      m4b=(vec_bjets_cc[0]+vec_fjet[0]).M();
+	      pt4b=(vec_bjets_cc[0]+vec_fjet[0]).Pt();
+	      dphi_met_j=min(fabs(deltaPhi(vec_fjet[0].Phi(),ev.met_phi)),fabs(deltaPhi(vec_bjets_cc[0].Phi(),ev.met_phi)));
+	      //dphi_met_j=min(fabs(vec_fjet[0].Phi()-ev.met_phi),fabs(vec_bjets_cc[0].Phi()-ev.met_phi));
+	      //dphi_met_j=min(fabs(ev.met_phi-vec_fjet[0].Phi()),fabs(ev.met_phi-vec_bjets_cc[0].Phi()));
+	      if(!run0lep){
+		if(fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())<TMath::Pi())
+		  {
+		    dphiHZ=std::fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		  }
+		else{
+		  dphiHZ=2*TMath::Pi()-std::fabs((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
 		}
-	    else{
-	      dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_bjets_cc[0]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
-	    }
-	  }
-	  mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
-	  mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
-	  mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
-	  mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
-	}
-	else if(vec_bjets_cc.size()>1){
-	 
-	  m4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M();
-          pt4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt();
-	  if(!run0lep){
-	    if(fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())< TMath::Pi())
-	      {
-		dphiHZ=fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
 	      }
-	    else {
-	      dphiHZ=std::fabs(TMath::Pi()-((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi()));
+	      mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
+	      mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
+	      mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).M(),weight);
+	      mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_fjet[0]).Pt(),weight);
 	    }
+	    else if(vec_bjets_cc.size()>1){
+	      
+	      m4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M();
+	      pt4b=(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt();
+	      float dphi_met_j1=min(fabs(deltaPhi(vec_fjet[0].Phi(),ev.met_phi)),fabs(deltaPhi(vec_bjets_cc[0].Phi(),ev.met_phi)));
+	      float dphi_met_j2=min(fabs(deltaPhi(vec_bjets_cc[0].Phi(),ev.met_phi)),fabs(deltaPhi(vec_bjets_cc[1].Phi(),ev.met_phi)));
+	      //float dphi_met_j1=min(fabs(ev.met_phi-vec_fjet[0].Phi()),fabs(ev.met_phi-vec_bjets_cc[0].Phi()));
+	      //float dphi_met_j2=min(fabs(ev.met_phi-vec_bjets_cc[1].Phi()),fabs(ev.met_phi-vec_bjets_cc[0].Phi()));
+	      dphi_met_j=min(dphi_met_j1,dphi_met_j2);
+	      if(!run0lep){
+		if(std::fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi())< TMath::Pi())
+		  {
+		    dphiHZ=std::fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		  }
+		else {
+		  dphiHZ=2*TMath::Pi()-std::fabs((vec_fjet[0]+vec_bjets_cc[0]+vec_bjets_cc[1]).Phi()-(vec_leptons[0]+vec_leptons[1]).Phi());
+		}
+	      }
+	      mon.fillHisto("pt","bjet2",vec_bjets_cc[1].Pt(),weight);
+	      mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
+	      mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
+	      mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
+	      mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
+	      
+	    }	
 	  }
-	  mon.fillHisto("pt","bjet2",vec_bjets_cc[1].Pt(),weight);
-	  mon.fillHisto("m_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
-	  mon.fillHisto("pt_bbb","tot",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
-	  mon.fillHisto("m_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).M(),weight);
-	  mon.fillHisto("pt_bbb","sr1",(vec_bjets_cc[0]+vec_bjets_cc[1]+vec_fjet[0]).Pt(),weight);
-	  
 	}
-        
       }
-    }
      if (runMVA) {
 	      
        float mvaweight = 1.0; // weight; //xsecWeight; //1.0;
-       //  genWeight > 0 ? mvaweight = weight/xsecWeight : mvaweight = -weight / xsecWeight; // Include all weights except for the xsecWeight
-       // if ( isSignalRegion && GoodIdbJets.size() >= 3) 
-       //{
-       //	  if(passMet25 && passMt) {_
-       myMVAHandler_.getEntry (isSR1,isSR2,m4b,pt4b,ptf1,sd_mass1,ht,met,xbb1,xbbccqq1,ptf2,sd_mass2,xbb2,xbbccqq2,ptb1,n_ad_j,btag3,dilep_pt,drll,dphiHZ,weight);
-			       //ptl1,ptl2,drll,dphiH
+       
+       myMVAHandler_.getEntry (isSR1,isSR2,is2b,is3b,m4b,pt4b,ptf1,sd_mass1,ht,met,xbb1,xbbccqq1,ptf2,sd_mass2,xbb2,xbbccqq2,ptb1,ptb2,n_ad_j,btag1,btag3,drjj,dphi_met_j,dilep_pt,drll,dphiHZ,dphi_met_l,weight);
+		  
        myMVAHandler_.fillTree();
        //	  }
        //	}
@@ -1057,7 +1192,8 @@ int main(int argc, char* argv[])
   std::cout << " lept cut," << n_event_lepton_test << ","<< (float)n_event_lepton_test/(float)totalEntries*100<<std::endl;
   std::cout << "inv mass cut," <<INVM<< ","<< (float)INVM/(float)totalEntries*100<<std::endl;
   std::cout << "MET cut," <<METCUT<< ","<< (float)METCUT/(float)totalEntries*100<<std::endl;
-  std::cout << "2fjet  cut," << n_fjets<< ","<< (float)n_fjets/(float)totalEntries*100<<std::endl;
+  std::cout << "2fjet  cut," << sr1<< ","<< (float)sr1/(float)totalEntries*100<<std::endl;
+  std::cout << "2fjet  cut," << sr2<< ","<< (float)sr2/(float)totalEntries*100<<std::endl;
   std::cout << "number of events after at least 2 fjet cuts and z->vv: " << st4_vv << std::endl;
   std::cout << "number of events after at least 2 fjet cuts and Z->qq_light: " << st4_qq << std::endl;
   std::cout << "number of events after at least 2 fjet cuts and Z->bb: " << st4_bb << std::endl;
@@ -1095,6 +1231,9 @@ int main(int argc, char* argv[])
     ofile=TFile::Open(outUrl, "update");
   }
   mon.Write();
+  hr->Write();
+  drbf->Write();
+  drjf->Write();
   ofile->Close();
   
   if ( outTxtFile_final ) fclose(outTxtFile_final);
@@ -1171,6 +1310,26 @@ double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet)
       dR_min=dR[min_ind];
       return dR_min;
 }
+double dphi_met_j_min(float metphi,std::vector<TLorentzVector> jet,std::vector<TLorentzVector> fjet)
+{
+  
+  double dphif_min=999;
+  double dphij_min=999;
+  double dphi_min=999;
+  for (int fj = 0; fj < fjet.size(); fj++)
+    {
+      double dphif = fabs(fjet[fj].Phi()- metphi);
+      if(dphif <dphif_min) dphif_min=dphif;
+    }
+  for (int j = 0; j < jet.size(); j++)
+    {
+      double dphij = fabs(jet[j].Phi()- metphi);
+      if(dphij <dphij_min) dphij_min=dphij;
+    }
+  dphi_min=min(dphif_min,dphij_min);
+  return dphi_min;
+}
+
 double Ht(std::vector<TLorentzVector> vecjet,std::vector<TLorentzVector> vecfjet)
 {
    double Ht=0;
