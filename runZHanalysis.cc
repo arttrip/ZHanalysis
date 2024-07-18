@@ -55,8 +55,10 @@
 #include <unistd.h>
 using namespace std;
 
+//std::vector<TLorentzVector> vec_genqg;
+//std::vector<std::pair<TLorentzVector,int> > vec_genqg_id;
 double getDeltaR(TLorentzVector vec_1, TLorentzVector vec_2);
-bool jet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb);
+int flav_jet_matched(TLorentzVector jet,std::vector<std::pair<TLorentzVector,int> > vec_genqg_id);
 double dR_j_fj_min(TLorentzVector jet,std::vector<TLorentzVector> vecfjet);
 double dphi_met_j_min(float metphi,std::vector<TLorentzVector> jet,std::vector<TLorentzVector> fjet);
 float fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb) ;
@@ -65,6 +67,7 @@ std::vector<TLorentzVector> sort_vec_pt(std::vector<TLorentzVector> vec);
 bool sortBtag( std::pair<TLorentzVector,float>  vec_jet_and_btagi,std::pair<TLorentzVector,float> vec_jet_and_btagj){
   return  vec_jet_and_btagi.second >  vec_jet_and_btagj.second ;
 }
+
 
 int main(int argc, char* argv[])
 {
@@ -342,25 +345,25 @@ int main(int argc, char* argv[])
   //###########################################           EVENT LOOP         ###########################################
   //####################################################################################################################
   //loop on all the events
-  int treeStep = (evEnd-evStart)/50;
-  if(treeStep==0)treeStep=1;
-  DuplicatesChecker duplicatesChecker;
-  int nDuplicates(0);
-  // Vars for TTJets :
-    int nTot(0); 
-    int nFilt1(0); int nFilt4(0); int nFilt5(0); 
-  for( int iev=evStart; iev<evEnd; iev++) 
-    {
-
-      //if ( verbose ) printf("\n\n Event info %3d: \n",iev);
-      //load the event content from tree
-      summaryHandler_.getEntry(iev);
-      DataEvtSummary_t &ev=summaryHandler_.getEvent();
-      if(!isMC && duplicatesChecker.isDuplicate( ev.run, ev.lumi, ev.event) ) {
-	nDuplicates++;
-	cout << "nDuplicates: " << nDuplicates << endl;
-	continue;
-      }
+   int treeStep = (evEnd-evStart)/50;
+   if(treeStep==0)treeStep=1;
+   DuplicatesChecker duplicatesChecker;
+   int nDuplicates(0);
+   // Vars for TTJets :
+   int nTot(0); 
+   int nFilt1(0); int nFilt4(0); int nFilt5(0); 
+   for( int iev=evStart; iev<evEnd; iev++) 
+     {
+       
+       //if ( verbose ) printf("\n\n Event info %3d: \n",iev);
+       //load the event content from tree
+       summaryHandler_.getEntry(iev);
+       DataEvtSummary_t &ev=summaryHandler_.getEvent();
+       if(!isMC && duplicatesChecker.isDuplicate( ev.run, ev.lumi, ev.event) ) {
+	 nDuplicates++;
+	 cout << "nDuplicates: " << nDuplicates << endl;
+	 continue;
+       }
                                                                                                           
       // add PhysicsEvent_t class, get all tree to physics objects
 
@@ -369,6 +372,8 @@ int main(int argc, char* argv[])
      
      // Create new object vectors after configuration
       // Jets
+      std::vector<TLorentzVector> vec_genqg;
+      std::vector<std::pair<TLorentzVector,int> > vec_genqg_id;
       std::vector<TLorentzVector> vec_jet;
       std::vector<TLorentzVector> vec_bjets;
       std::vector<TLorentzVector> vec_bjets_cc;
@@ -395,7 +400,7 @@ int main(int argc, char* argv[])
       std::vector<TLorentzVector> vec_gena;
       std::vector<TLorentzVector> vec_h;
       std::vector<TLorentzVector> vec_z;
-      std::vector<TLorentzVector> vec_genqg; //quarks or gluons
+      //std::vector<TLorentzVector> vec_genqg; //quarks or gluons
       std::vector<TLorentzVector> vec_genb; // only b's
       std::vector<TLorentzVector> vec_genbb1_truth;
       std::vector<TLorentzVector> vec_genbb2_truth;
@@ -491,11 +496,13 @@ int main(int argc, char* argv[])
             TLorentzVector pb;
             pb.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
             vec_genqg_bef.push_back(pb);
+	    vec_genqg_id.push_back(make_pair(pb,ev.mc_id[imc]));  
             if (abs(ev.mc_id[imc])==5) vec_genb_bef.push_back(pb);
 	    // acceptance cuts :
             if (pb.Pt()>20. && fabs(pb.Eta())<2.4) 
             {
               vec_genqg.push_back(pb);
+	      //vec_genqg_id.push_back(make_pair(pb,ev.mc_id[imc]));
               if (abs(ev.mc_id[imc])==5)  vec_genb.push_back(pb);
 	      //bb pair from same a boson 
               
@@ -509,7 +516,7 @@ int main(int argc, char* argv[])
                 }
 		
 	    } // end acceptance cuts
-	 }// if q/g END    
+	  }// if q/g END    
 
          // z->qqlight/z->bb/z->vv/z->ll
          if ((abs(ev.mc_id[imc])>=1 && abs(ev.mc_id[imc])<=4)  && ev.mc_mom[imc]==23)
@@ -706,62 +713,28 @@ int main(int argc, char* argv[])
 	    bjet_index.push_back(make_pair(p_jet,i));
 	  }
 	if (isMC_ttbar) {
-	  bool isMatched5(false);
-	  bool isMatched4(false);
-	  double dR_min=999;
-	  int flavid=0;
-	  // for (auto igen : phys.genparticles) {
-	  //TLorentzVector p_igen;
-	  //p_igen.SetPtEtaPhiE(igen.Pt(), igen.Eta(), igen.Phi(),igen.E());
-	  //double dR = getDeltaR( p_jet, p_igen );
-	  // if (dR<dR_min) dR_min=dR;
-	  // if (dR_min<0.4)flavid=igen.id;
-	  //}
-	  for (int imc=0; imc<ev.nmcparticles;imc++) 
-	    {
-	      if( ((abs(ev.mc_id[imc])>=1 && abs(ev.mc_id[imc])<=5) || abs(ev.mc_id[imc])==21) && (ev.mc_status[imc]==23)){
-		  TLorentzVector p_gen;
-		  p_gen.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
-		  double dR = getDeltaR( p_jet, p_gen );                                                                         
-		  if (dR<dR_min){
-		    dR_min=dR;                                                                                       
-		    flavid=ev.mc_id[imc];}
-		}
-	    }
-	       
-	  //for (auto igen : phys.genparticles) {
+	
+	  bool isMatched(false);
+	  
 	  for (int imc=0; imc<ev.nmcparticles;imc++){
-	    if(ev.mc_status[imc]!=23)continue;
+	    if(ev.mc_status[imc]==62)continue;
 	    //only check matching with a b-hadron from the top decay
 	    if(fabs(ev.mc_id[imc])!=5) continue;
-	    if(!(fabs(ev.mc_mom[imc])==6||fabs(ev.mc_mom[imc])==24)) continue;
 	    TLorentzVector p_gen;
 	    p_gen.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
 	    double dR = getDeltaR( p_jet, p_gen );
-	    if (dR<0.4) { isMatched5=true; break; }
+	    if (dR<0.4) { isMatched=true; break; }
 	  }
-	   for (int imc=0; imc<ev.nmcparticles;imc++){                                                                                                  
-            if(ev.mc_status[imc]!=23)continue;
-            //only check matching with a c-hadron from the top decay                                                                        
-            if(fabs(ev.mc_id[imc])!=4) continue;
-            if(fabs(ev.mc_mom[imc])!=24) continue;
-            TLorentzVector p_gen;
-            p_gen.SetPxPyPzE(ev.mc_px[imc],ev.mc_py[imc],ev.mc_pz[imc],ev.mc_en[imc]);
-            double dR = getDeltaR( p_jet, p_gen );
-            if (dR<0.4) { isMatched4=true; break; }
 	  
-	      
-	    if (verbose && iev<10)std::cout<<"flavid="<<flavid<<"ismatched5? "<<isMatched5<<"ismatched4? "<<isMatched4<<endl;
-	    if(abs(flavid)==5) {
-	      if(!isMatched5) nHF++;
-	    }
-	    else if (abs(flavid)==4) {
-	      if(!isMatched4) nHFc++; 
-	    }
-	   }
-	   
-	} // end jet loop
-    }
+	  if(abs(flav_jet_matched(p_jet,vec_genqg_id))==5) {
+	    if(!isMatched) nHF++;
+	  }
+	  else if (abs(flav_jet_matched(p_jet,vec_genqg_id))==4) {
+	    nHFc++;
+	  }
+	}
+    } // end jet loop
+    
     //split inclusive TTJets POWHEG sample into tt+bb, tt+cc and tt+light
     if (isMC_ttbar) {
       nTot++;
@@ -769,18 +742,18 @@ int main(int argc, char* argv[])
 	if (!(nHF>0)) { continue;}
 	else { nFilt5++; }
       }
-       if(mctruthmode==4) { //only keep events with nHFc>0 
-	    if (!(nHFc>0 )) { continue; }
-	    else { nFilt4++; }
-	  }
+      if(mctruthmode==4) { //only keep events with nHFc>0 
+	if (!(nHFc>0 && nHF==0  )) { continue; }
+	else { nFilt4++; }
+      }
       if(mctruthmode==1) {
-	if (nHF>0 || (nHFc>0 )) { continue; }
+	if (nHF>0 || (nHFc>0  && nHF==0 )) { continue; }
 	else { nFilt1++;}
       }
     }
     //sort the b-tagged jets by discriminator value   
     std::sort(vec_jet_and_btag.begin(), vec_jet_and_btag.end(), sortBtag);
- 
+    
     //fjets
     for (int i = 0; i < ev.fjet; i++)
       {  
@@ -1237,36 +1210,7 @@ int main(int argc, char* argv[])
 	mon.fillHisto("fj_sd_mass","1",ev.fjet_softdropM[fjet_index[0].second],weight);
 	mon.fillHisto("fj_pt_sd_mass","1",vec_fjet[0].Pt(),ev.fjet_softdropM[fjet_index[0].second],weight);
 	mon.fillHisto("subcount","1",ev.fjet_subjet_count[fjet_index[0].second],weight);
-	
-      // 	bool matched(false);
-      // 	bool matched1(false);bool matched2(false);
-	
-      // 	if(isSignal) 
-      // 	  {
-      // 	    if(fjet_matched(vec_fjet[0],vec_genbb1_truth)>0)
-      // 	      {
-      // 		mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),(vec_genbb1_truth[0]+vec_genbb1_truth[1]).Pt(),weight);
-      // 		matched1=true;
-      // 	      } 
-      // 	else if( fjet_matched(vec_fjet[0],vec_genbb2_truth)>0)
-      // 	  {
-      // 	    mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),(vec_genbb2_truth[0]+vec_genbb2_truth[1]).Pt(),weight);
-      // 	    matched2=true;  
-      // 	  }
-      // 	    if(matched1||matched2)matched=true;
-      // 	  }
-      // 	else { // backgrounds:
-	  
-      // 	  if( fjet_matched(vec_fjet[0],vec_genqg)>0){
-      // 	    mon.fillHisto("fj_pt_bb_pt","1",vec_fjet[0].Pt(),fjet_matched(vec_fjet[0],vec_genqg),weight);
-      // 	    matched=true;
-      // }
-      // 	}
-      // 	if(matched){
-      // 	  mon.fillHisto("pt","bb_AK8",vec_fjet[0].Pt(),weight);
-      // 	  mon.fillHisto("fj_sd_mass","1_mat",ev.fjet_softdropM[fjet_index[0].second],weight);
-      // 	  mon.fillHisto("subcount","1_mat",ev.fjet_subjet_count[fjet_index[0].second],weight);
-      // 	}
+       
 											      
 	//xbb discriminants
 	xbb1=ev.fjet_btag10[fjet_index[0].second]/(ev.fjet_btag10[fjet_index[0].second]+ev.fjet_btag13[fjet_index[0].second]+ev.fjet_btag14[fjet_index[0].second]+ev.fjet_btag15[fjet_index[0].second]+ev.fjet_btag16[fjet_index[0].second]+ev.fjet_btag17[fjet_index[0].second]);
@@ -1291,8 +1235,7 @@ int main(int argc, char* argv[])
 	hr->Fill(6);
 	mon.fillHisto("btag3","SR1", ev.jet_btag1[bjet_index_cc[0].second],weight);
 	mon.fillHisto("pt","SR1_b1",vec_bjets_cc[0].Pt(),weight);
-	//mon.fillHisto("eta","bjetSR1",vec_bjets_cc[0].Eta(),weight);
-	//mon.fillHisto("phi","bjetSR1",vec_bjets_cc[0].Phi(),weight);
+
 	if(vec_bjets_cc.size()==1){
 	  m4b_SR1=(vec_bjets_cc[0]+vec_fjet[0]).M();
 	  pt4b_SR1=(vec_bjets_cc[0]+vec_fjet[0]).Pt();
@@ -1376,9 +1319,9 @@ int main(int argc, char* argv[])
        myMVAHandler_.fillTree();
        //	  }
        //	}
-     } // runMVA
+    } // runMVA
      
-    }// end event loop
+     }// end event loop
   printf("\n");
   file->Close();
   
@@ -1417,7 +1360,7 @@ int main(int argc, char* argv[])
   outUrl += outFileUrl + ".root";
   //    outUrl = outFileUrl + ".root";
   printf("Results saved in %s\n", outUrl.Data());
- if (isMC_ttbar) { 
+  if (isMC_ttbar) { 
 
       double cFilt1, cFilt4, cFilt5;
       cFilt1=(double(nFilt1)/double(nTot));
@@ -1426,7 +1369,7 @@ int main(int argc, char* argv[])
       
       printf("From total = %i TTbar events ,  Found %.2f (filt1) , %.2f (filt4) , %.2f (filt5) \n\n", 
 	     nTot, cFilt1, cFilt4, cFilt5);
-    }
+	     }
   
   // in the end: save all to the file
   int nTrial = 0;
@@ -1466,17 +1409,18 @@ double getDeltaR(TLorentzVector vec_1, TLorentzVector vec_2)
   return std::sqrt(delta_phi * delta_phi + delta_eta * delta_eta);
 }
 
-bool Jet_matched(TLorentzVector jet,std::vector<TLorentzVector> vecb) 
+int  flav_jet_matched(TLorentzVector jet,std::vector<std::pair<TLorentzVector,int> > vec_genqg_id) 
 {
-  bool matched=false;
-  float dR_min=999;
-  float dR=0;
-   for (int i=0; i<vecb.size(); i++) {
-      dR=getDeltaR(jet, vecb[i]);
-      if (dR<dR_min) dR_min=dR;
-   }
-   if (dR_min<0.4) matched=true;
-   return matched; 
+  double dR=0;
+  int flavid=0;
+  for (const auto& genqg: vec_genqg_id)
+    {
+     dR=getDeltaR(jet,genqg.first);
+     if (dR<0.4) {
+       flavid=genqg.second;break;
+     }
+    }
+  return flavid; 
 }
 
 float fjet_matched(TLorentzVector fjet,std::vector<TLorentzVector> vecb)
